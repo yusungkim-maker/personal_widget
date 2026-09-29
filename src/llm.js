@@ -89,7 +89,8 @@ const isInside = (child, parent) => {
 
 // 위젯 전용 Codex: node_modules 의 고정 버전만 허용한다
 function codexRuntime() {
-  const root = path.resolve(__dirname, '..', 'node_modules');
+  // 설치판에서는 실행 파일을 asar 밖(app.asar.unpacked)에 풀어 둔다
+  const root = path.resolve(__dirname, '..', 'node_modules').replace(`app.asar${path.sep}`, `app.asar.unpacked${path.sep}`);
   const pkgDir = path.join(root, '@openai', 'codex');
   const codexJs = path.join(pkgDir, 'bin', 'codex.js');
   try {

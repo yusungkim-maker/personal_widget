@@ -26,16 +26,23 @@ if (!app.requestSingleInstanceLock()) {
   app.on('second-instance', () => win?.show());
 }
 
-const APP_ID = 'com.yusk.widget';
+// 개발 실행은 설치판과 다른 ID 를 써서 알림·바로 가기가 서로 섞이지 않게 한다
+const APP_ID = app.isPackaged ? 'com.yusk.widget' : 'com.yusk.widget.dev';
 app.setAppUserModelId(APP_ID);
 
 // Windows 는 시작 메뉴 바로 가기에 같은 AppUserModelID 가 등록된 앱의 알림만 보여 준다.
 // 설치판은 설치 프로그램이 만들어 주고, 개발 실행일 때는 여기서 만든다.
 function ensureStartMenuShortcut() {
   if (process.platform !== 'win32' || app.isPackaged) return;
+  // 예전 버전이 만든 개발용 바로 가기(이름이 설치판과 같음)를 지운다
+  const old = path.join(app.getPath('appData'), 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Yusk Widget.lnk');
+  try {
+    if (require('fs').existsSync(old) && require('electron').shell.readShortcutLink(old).target === process.execPath) require('fs').unlinkSync(old);
+  } catch { /* 무시 */ }
   const { shell } = require('electron');
-  const lnk = path.join(app.getPath('appData'), 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Yusk Widget.lnk');
-  const want = { target: process.execPath, args: `"${path.resolve(app.getAppPath())}"`, appUserModelId: APP_ID, description: 'Yusk Widget' };
+  // 설치판의 'Yusk Widget' 바로 가기를 덮어쓰지 않도록 이름을 따로 쓴다
+  const lnk = path.join(app.getPath('appData'), 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Yusk Widget (개발).lnk');
+  const want = { target: process.execPath, args: `"${path.resolve(app.getAppPath())}"`, appUserModelId: APP_ID, description: 'Yusk Widget (개발 실행)', icon: path.join(ASSETS, 'icon.png') };
   try {
     const cur = shell.readShortcutLink(lnk);
     if (cur.target === want.target && cur.args === want.args && cur.appUserModelId === APP_ID) return;
@@ -87,6 +94,7 @@ function createWindow() {
     hasShadow: false,
     show: false,
     title: APP_NAME,
+    icon: path.join(ASSETS, 'icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -201,23 +209,9 @@ function openNationwide() {
 
 // ───────────────────────── 트레이 ─────────────────────────
 
-function trayIcon() {
-  // 32x32 BGRA 비트맵으로 원형 아이콘을 직접 그린다.
-  const size = 32;
-  const buf = Buffer.alloc(size * size * 4);
-  const [r, g, b] = [0x8a, 0xb4, 0xff];
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const d = Math.hypot(x - 15.5, y - 15.5);
-      const inner = Math.hypot(x - 15.5, y - 15.5) < 7;
-      const a = Math.max(0, Math.min(1, 15 - d));
-      const i = (y * size + x) * 4;
-      const [cr, cg, cb] = inner ? [255, 255, 255] : [r, g, b];
-      buf[i] = cb; buf[i + 1] = cg; buf[i + 2] = cr; buf[i + 3] = Math.round(a * 255);
-    }
-  }
-  return nativeImage.createFromBitmap(buf, { width: size, height: size, scaleFactor: 2 });
-}
+// 뭉치 얼굴 아이콘 (tray@2x.png 는 고해상도 화면에서 자동으로 쓰인다)
+const ASSETS = path.join(__dirname, 'assets');
+const trayIcon = () => nativeImage.createFromPath(path.join(ASSETS, 'tray.png'));
 
 function setWindow(patch) {
   store.update({ window: patch });
@@ -365,6 +359,7 @@ ipcMain.handle('open-external', (_e, url) => {
 app.whenReady().then(() => {
   store.load();
   ensureStartMenuShortcut();
+  if (app.isPackaged && store.get().autoStart) applyAutoStart(true);
   memos.register(() => win);
   quick.register(() => win);
   // 백업에서 되돌리면 모든 창을 새로 불러 새 설정을 반영한다

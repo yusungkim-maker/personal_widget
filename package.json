@@ -5,17 +5,53 @@
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
-    "test": "node --test test/llm.test.js test/nlparse.test.js test/gcal.test.js test/air.test.js"
+    "test": "node --test test/llm.test.js test/nlparse.test.js test/gcal.test.js test/air.test.js",
+    "dist": "electron-builder --win nsis"
   },
-  "author": "",
+  "author": "yusungkim",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
     "@openai/codex": "0.158.0",
-    "electron": "^44.4.5",
     "koffi": "^3.3.2",
     "node-ical": "^0.27.2"
   },
   "productName": "Yusk Widget",
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "electron": "^44.4.5",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "com.yusk.widget",
+    "productName": "Yusk Widget",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/koffi/**",
+      "node_modules/@openai/**"
+    ],
+    "electronDist": "node_modules/electron/dist",
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "runAfterFinish": true,
+      "createDesktopShortcut": false,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Yusk Widget",
+      "artifactName": "YuskWidget-Setup-${version}.${ext}",
+      "deleteAppDataOnUninstall": false
+    }
+  }
 }
