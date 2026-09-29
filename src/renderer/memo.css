@@ -1,0 +1,76 @@
+/* 포스트잇 팝업: 테마와 관계없이 파스텔 종이 느낌 */
+html, body { height: 100%; }
+body { padding: 8px; color: #2b2a26; }
+
+.note {
+  --paper: #fff4b8; --edge: #f2dd6e; --ink: #2b2a26; --soft: rgba(43, 42, 38, .55);
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border-radius: 14px;
+  background: var(--paper);
+  border: 1px solid var(--edge);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .28), inset 0 1px 0 rgba(255, 255, 255, .6);
+  overflow: hidden;
+  color: var(--ink);
+  transition: background .2s, border-color .2s;
+}
+.note.mint { --paper: #d7f5e6; --edge: #9fdcbd; }
+.note.sky { --paper: #d9ecff; --edge: #a5ccf5; }
+.note.pink { --paper: #ffdfe8; --edge: #f5b0c4; }
+.note.lavender { --paper: #e9e1ff; --edge: #c4b3f5; }
+
+.bar {
+  -webkit-app-region: drag;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 8px 4px 12px;
+}
+.colors { display: flex; gap: 6px; -webkit-app-region: no-drag; }
+.colors button { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid rgba(0, 0, 0, .12); }
+.colors button[data-c="yellow"] { background: #ffe57a; }
+.colors button[data-c="mint"] { background: #8ee0b6; }
+.colors button[data-c="sky"] { background: #8cc3fa; }
+.colors button[data-c="pink"] { background: #ffa3bd; }
+.colors button[data-c="lavender"] { background: #bba6ff; }
+.colors button.on { box-shadow: 0 0 0 2px var(--paper), 0 0 0 3.5px var(--soft); }
+.tools { display: flex; gap: 2px; }
+.tbtn { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; color: var(--soft); }
+.tbtn:hover { background: rgba(0, 0, 0, .07); color: var(--ink); }
+.tbtn svg { width: 15px; height: 15px; }
+#del.armed { background: #e5484d; color: #fff; }
+
+.title, .body {
+  background: transparent;
+  border: 0;
+  outline: none;
+  color: var(--ink);
+  -webkit-app-region: no-drag;
+  user-select: text;
+}
+.title { font-size: 15px; font-weight: 700; padding: 4px 14px 6px; }
+.title::placeholder, .body::placeholder { color: var(--soft); font-weight: 400; }
+.body {
+  flex: 1;
+  resize: none;
+  padding: 2px 14px 8px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.body::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, .15); }
+
+.foot {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 14px 9px;
+  font-size: 10.5px;
+  color: var(--soft);
+  border-top: 1px dashed var(--edge);
+}
+.confirm {
+  position: absolute; top: 40px; right: 10px;
+  font-size: 11px; padding: 5px 9px; border-radius: 8px;
+  background: #2b2a26; color: #fff; box-shadow: 0 4px 12px rgba(0, 0, 0, .2);
+}

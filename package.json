@@ -1,0 +1,21 @@
+{
+  "name": "yusk-widget",
+  "version": "1.0.0",
+  "description": "개인용 Windows 바탕화면 위젯 (시계·날씨·달력·할 일·AI)",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/llm.test.js test/nlparse.test.js test/gcal.test.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@openai/codex": "0.158.0",
+    "electron": "^44.4.5",
+    "koffi": "^3.3.2",
+    "node-ical": "^0.27.2"
+  },
+  "productName": "Yusk Widget",
+  "private": true
+}
