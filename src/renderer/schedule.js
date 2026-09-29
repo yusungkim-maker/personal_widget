@@ -24,7 +24,47 @@ async function connectGoogle() {
   gcalState.connecting = true;
   renderGcalSettings();
   const r = await widget.gcal.connect();
-  await refreshGcal();
+  await // ───────────────────────── 빠른 입력(전역 단축키)에서 넘어온 작업 ─────────────────────────
+
+widget.quick.onAction((kind, payload) => {
+  if (kind === 'todo') addTodo(payload.text, payload.date);
+  if (kind === 'refresh-calendar') loadCalendar(true);
+  const reveal = (card) => {
+    // 컴팩트 모드거나 접혀 있으면 펼쳐서 보여 준다
+    config.appearance.compact = false;
+    config.collapsed = { ...(config.collapsed || {}), [card]: false };
+    applyLayout();
+    widget.updateConfig({ appearance: { compact: false }, collapsed: config.collapsed });
+  };
+  if (kind === 'compose') {
+    reveal('calendar');
+    openComposer(payload);
+    $('#sec-calendar').scrollIntoView({ block: 'start' });
+  }
+  if (kind === 'ask') {
+    reveal('ai');
+    $('#ai-input').value = payload;
+    $('#sec-ai').scrollIntoView({ block: 'end' });
+    sendChat();
+  }
+});
+
+// 설정: 단축키
+async function renderHotkeySettings(status) {
+  const st = status || await widget.quick.status();
+  const sel = $('#set-hotkey');
+  const label = (k) => k.replace('Control', 'Ctrl');
+  sel.innerHTML = st.options.map((k) => `<option value="${k}">${label(k)}</option>`).join('') + '<option value="">사용 안 함</option>';
+  sel.value = config.quick?.hotkey ?? st.options[0];
+  $('#hotkey-state').textContent = st.error || (st.hotkey ? `${label(st.hotkey)} 를 누르면 어디서든 입력창이 떠요.` : '단축키를 쓰지 않아요. 트레이 메뉴의 "빠른 입력"으로 열 수 있어요.');
+  $('#hotkey-state').classList.toggle('err', !!st.error);
+}
+$('#set-hotkey').addEventListener('change', async (e) => {
+  config.quick = { hotkey: e.target.value };
+  renderHotkeySettings(await widget.quick.setHotkey(e.target.value));
+});
+
+refreshGcal();
   if (r.ok) {
     toast(`구글 캘린더가 연결됐어요 · ${gcalState.email}`);
     loadCalendar(true);

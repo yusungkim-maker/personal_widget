@@ -533,3 +533,5 @@ body.compact #app > section:not(#sec-clock):not(#sec-today):not(#settings) { dis
 
 .settings .check .inline-select { width: auto; margin-left: auto; padding: 3px 6px; font-size: 11.5px; color-scheme: dark; }
 :root[data-theme="light"] .settings .check .inline-select { color-scheme: light; }
+
+.settings .hint.err { color: var(--sun); }

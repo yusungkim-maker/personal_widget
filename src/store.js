@@ -64,6 +64,7 @@ const DEFAULTS = {
   },
   collapsed: {}, // 접은 카드 { weather: true, ... }
   notify: { events: true, eventMinutes: 10, todos: true, todoTime: '09:00' },
+  quick: { hotkey: 'Control+Alt+M', userSet: false }, // 빠른 입력 단축키 ('' 이면 끔)
   todos: [],
   memos: [], // { id, title, body, color, createdAt, updatedAt }
   autoStart: false,

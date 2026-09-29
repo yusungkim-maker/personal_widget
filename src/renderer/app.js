@@ -786,6 +786,7 @@ function fillSettings() {
   $('#set-ical').value = config.calendar.icalUrls.join('\n');
   $('#set-holidays').checked = config.calendar.koreanHolidays;
   fillNotifySettings();
+  renderHotkeySettings();
   $('#set-effort').value = config.ai.effort;
   $('#set-websearch').checked = config.ai.webSearch;
   $('#set-share-memos').checked = config.ai.shareMemos !== false;
@@ -902,6 +903,8 @@ widget.onConfigChanged((c) => {
   applyAppearance();
   if (!$('#settings').hidden) fillSettings();
   renderModelPicker();
+  renderTodos();
+  renderCalendar();
   tickClock();
 });
 

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ko" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'">
+  <title>빠른 입력</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="quick.css">
+</head>
+<body>
+  <div class="q card">
+    <div class="q-row">
+      <span class="q-ico" id="q-ico"></span>
+      <input id="q-input" autocomplete="off" spellcheck="false"
+        placeholder="내일 3시 치과 · 금요일까지 보고서 · 메모 … · ? 뭉치에게 질문">
+      <span class="q-mode" id="q-mode"></span>
+    </div>
+    <div class="q-modes" id="q-modes">
+      <button data-m="event">일정</button><button data-m="todo">할 일</button><button data-m="memo">메모</button><button data-m="ask">뭉치</button>
+      <span class="q-hint"><kbd>Tab</kbd> 종류 바꾸기 · <kbd>Enter</kbd> 저장 · <kbd>Esc</kbd> 닫기</span>
+    </div>
+    <div class="q-preview" id="q-preview"></div>
+  </div>
+  <script src="nlparse.js"></script>
+  <script src="avatar.js"></script>
+  <script src="quick.js"></script>
+</body>
+</html>

@@ -6,6 +6,7 @@ const calendar = require('./calendar');
 const llm = require('./llm');
 const gcal = require('./gcal');
 const memos = require('./memos');
+const quick = require('./quick');
 const weather = require('./weather');
 
 const BASE_WIDTH = 340;
@@ -259,6 +260,7 @@ function refreshTray() {
       label: 'Windows 시작 시 자동 실행', type: 'checkbox', checked: cfg().autoStart,
       click: (i) => { store.update({ autoStart: i.checked }); applyAutoStart(i.checked); broadcastConfig(); },
     },
+    { label: `빠른 입력${quick.hotkeyLabel() ? ` (${quick.hotkeyLabel().replace('Control', 'Ctrl')})` : ''}`, click: () => quick.showQuick() },
     { label: '전국 날씨 보기', click: () => openNationwide() },
     { label: '새로고침', click: () => win.reload() },
     { label: '종료', click: () => app.quit() },
@@ -358,6 +360,7 @@ app.whenReady().then(() => {
   store.load();
   ensureStartMenuShortcut();
   memos.register(() => win);
+  quick.register(() => win);
   // 뭉치와의 대화를 파일로 저장해 두었다가 다시 켤 때 이어서 보여 준다
   const chatFile = path.join(app.getPath('userData'), 'chat-history.json');
   const fsx = require('fs');
@@ -401,4 +404,5 @@ app.whenReady().then(() => {
 });
 
 app.on('before-quit', () => store.flush());
+app.on('will-quit', () => quick.unregisterAll());
 app.on('window-all-closed', () => app.quit());

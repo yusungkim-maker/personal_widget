@@ -42,5 +42,13 @@ contextBridge.exposeInMainWorld('widget', {
     closeSelf: () => ipcRenderer.invoke('memo:close-self'),
     onChanged: (fn) => ipcRenderer.on('memos-changed', (_e, list) => fn(list)),
   },
+  quick: {
+    onOpen: (fn) => ipcRenderer.on('quick:open', () => fn()),
+    hide: () => ipcRenderer.invoke('quick:hide'),
+    toWidget: (kind, payload) => ipcRenderer.invoke('quick:to-widget', kind, payload),
+    status: () => ipcRenderer.invoke('quick:status'),
+    setHotkey: (key) => ipcRenderer.invoke('quick:set-hotkey', key),
+    onAction: (fn) => ipcRenderer.on('quick:action', (_e, kind, payload) => fn(kind, payload)),
+  },
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
 });
