@@ -534,7 +534,9 @@ async function restoreChat() {
     : `${first.getMonth() + 1}/${first.getDate()}`;
   log.insertAdjacentHTML('beforeend', `<div class="chat-divider"><span>지난 대화 · ${label}</span></div>`);
   for (const h of list) {
-    if (h.role === 'user') addMsg('user', esc(h.text));
+    if (h.role === 'user' && h.text.startsWith('[아침 브리핑]')) {
+      log.insertAdjacentHTML('beforeend', '<div class="chat-divider brief"><span>☀️ 아침 브리핑</span></div>');
+    } else if (h.role === 'user') addMsg('user', esc(h.text));
     else {
       const el = addMsg('bot', md(stripActions(h.text)));
       renderActionCards(el, h.text, { past: true });
@@ -786,6 +788,7 @@ function fillSettings() {
   $('#set-ical').value = config.calendar.icalUrls.join('\n');
   $('#set-holidays').checked = config.calendar.koreanHolidays;
   fillNotifySettings();
+  fillBriefSettings();
   renderHotkeySettings();
   $('#set-effort').value = config.ai.effort;
   $('#set-websearch').checked = config.ai.webSearch;

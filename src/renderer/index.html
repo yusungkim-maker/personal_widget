@@ -188,6 +188,14 @@
         </div>
 
         <div class="group">
+          <h3>아침 브리핑</h3>
+          <label class="check"><input type="checkbox" id="set-brief"> 매일 뭉치가 오늘 날씨·일정·할 일을 먼저 요약해 주기
+            <input type="time" id="set-brief-time" class="field inline-select" step="300"></label>
+          <p class="hint">정한 시각부터 정오 사이에 위젯이 켜져 있으면 하루 한 번 보내요. 대화창과 Windows 알림으로 나와요.</p>
+          <button class="btn ghost" id="brief-now">지금 브리핑 받기</button>
+        </div>
+
+        <div class="group">
           <h3>빠른 입력</h3>
           <label class="row">단축키
             <select id="set-hotkey" class="field"></select></label>
@@ -320,5 +328,6 @@
   <script src="memos.js"></script>
   <script src="layout.js"></script>
   <script src="notify.js"></script>
+  <script src="brief.js"></script>
 </body>
 </html>

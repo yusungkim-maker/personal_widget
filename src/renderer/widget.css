@@ -535,3 +535,6 @@ body.compact #app > section:not(#sec-clock):not(#sec-today):not(#settings) { dis
 :root[data-theme="light"] .settings .check .inline-select { color-scheme: light; }
 
 .settings .hint.err { color: var(--sun); }
+
+.chat-divider.brief { color: #f5c933; }
+.chat-divider.brief::before, .chat-divider.brief::after { background: rgba(245, 201, 51, .35); }
