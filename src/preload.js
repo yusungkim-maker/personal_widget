@@ -54,5 +54,13 @@ contextBridge.exposeInMainWorld('widget', {
     setHotkey: (key) => ipcRenderer.invoke('quick:set-hotkey', key),
     onAction: (fn) => ipcRenderer.on('quick:action', (_e, kind, payload) => fn(kind, payload)),
   },
+  backup: {
+    status: () => ipcRenderer.invoke('backup:status'),
+    now: () => ipcRenderer.invoke('backup:now'),
+    open: () => ipcRenderer.invoke('backup:open'),
+    restore: () => ipcRenderer.invoke('backup:restore'),
+    chooseExtra: () => ipcRenderer.invoke('backup:choose-extra'),
+    clearExtra: () => ipcRenderer.invoke('backup:clear-extra'),
+  },
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
 });

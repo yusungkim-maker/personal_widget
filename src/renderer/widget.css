@@ -550,3 +550,5 @@ body.compact #app > section:not(#sec-clock):not(#sec-today):not(#settings) { dis
 .warn-row { font-size: 12px; padding: 6px 9px; border-radius: 9px; color: #ffcf8a; background: rgba(255, 169, 77, .14); border: 1px solid rgba(255, 169, 77, .35); }
 .air-state { display: flex; flex-direction: column; gap: 4px; margin: 10px 0 6px; }
 .air-state a { color: var(--accent); text-decoration: none; }
+
+.key-row.wrap { flex-wrap: wrap; }

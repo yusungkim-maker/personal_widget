@@ -197,6 +197,22 @@
         </div>
 
         <div class="group">
+          <h3>백업</h3>
+          <p class="hint" id="backup-state"></p>
+          <div class="key-row wrap">
+            <button class="btn ghost" id="backup-now">지금 백업</button>
+            <button class="btn ghost" id="backup-restore">백업에서 되돌리기…</button>
+            <button class="btn ghost" id="backup-open">폴더 열기</button>
+          </div>
+          <p class="sub">추가 백업 폴더 (선택)</p>
+          <p class="hint" id="backup-extra-state"></p>
+          <div class="key-row wrap">
+            <button class="btn ghost" id="backup-extra">폴더 고르기</button>
+            <button class="btn ghost" id="backup-extra-clear" hidden>사용 안 함</button>
+          </div>
+        </div>
+
+        <div class="group">
           <h3>빠른 입력</h3>
           <label class="row">단축키
             <select id="set-hotkey" class="field"></select></label>
@@ -333,5 +349,6 @@
   <script src="air.js"></script>
   <script src="notify.js"></script>
   <script src="brief.js"></script>
+  <script src="backup-ui.js"></script>
 </body>
 </html>

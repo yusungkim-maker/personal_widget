@@ -65,6 +65,7 @@ const DEFAULTS = {
   collapsed: {}, // 접은 카드 { weather: true, ... }
   notify: { events: true, eventMinutes: 10, todos: true, todoTime: '09:00' },
   brief: { enabled: true, time: '08:30', last: '' }, // 아침 브리핑
+  backup: { last: null, extraDir: '' },               // 자동 백업
   quick: { hotkey: 'Control+Alt+M', userSet: false }, // 빠른 입력 단축키 ('' 이면 끔)
   todos: [],
   memos: [], // { id, title, body, color, createdAt, updatedAt }
@@ -120,6 +121,13 @@ function publicConfig() {
   return c;
 }
 
+// 백업에서 되돌릴 때: 통째로 바꾸고 바로 저장
+function replace(next) {
+  data = merge(DEFAULTS, next || {});
+  flush();
+  return data;
+}
+
 function update(patch) {
   data = merge(get(), patch);
   save();
@@ -153,4 +161,4 @@ function getSecret(section) {
   }
 }
 
-module.exports = { load, get, update, save, flush, publicConfig, setSecret, getSecret };
+module.exports = { load, get, update, replace, save, flush, publicConfig, setSecret, getSecret };

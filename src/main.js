@@ -8,6 +8,7 @@ const gcal = require('./gcal');
 const memos = require('./memos');
 const quick = require('./quick');
 const air = require('./air');
+const backup = require('./backup');
 const weather = require('./weather');
 
 const BASE_WIDTH = 340;
@@ -366,6 +367,11 @@ app.whenReady().then(() => {
   ensureStartMenuShortcut();
   memos.register(() => win);
   quick.register(() => win);
+  // 백업에서 되돌리면 모든 창을 새로 불러 새 설정을 반영한다
+  backup.register(() => win, () => {
+    for (const w of BrowserWindow.getAllWindows()) w.webContents.reload();
+    applyWindowSettings();
+  });
   // 뭉치와의 대화를 파일로 저장해 두었다가 다시 켤 때 이어서 보여 준다
   const chatFile = path.join(app.getPath('userData'), 'chat-history.json');
   const fsx = require('fs');

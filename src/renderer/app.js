@@ -791,6 +791,7 @@ function fillSettings() {
   $('#set-ical').value = config.calendar.icalUrls.join('\n');
   $('#set-holidays').checked = config.calendar.koreanHolidays;
   fillNotifySettings();
+  refreshBackup();
   renderAirSettings();
   fillBriefSettings();
   renderHotkeySettings();
