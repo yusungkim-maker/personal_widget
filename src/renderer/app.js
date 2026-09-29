@@ -514,6 +514,28 @@ async function sendChat() {
   }
 }
 
+// 위젯을 다시 켜면 저장된 대화를 보여 준다. 지난 등록 카드는 중복 등록을 막기 위해 "지난 제안"으로만 표시.
+async function restoreChat() {
+  let list = [];
+  try { list = await widget.chatHistory(); } catch { /* 없음 */ }
+  if (!list.length) return;
+  const log = $('#ai-log');
+  log.innerHTML = '';
+  const first = new Date(list[0].at || Date.now());
+  const label = first.toDateString() === new Date().toDateString()
+    ? `${first.getHours() < 12 ? '오전' : '오후'} ${first.getHours() % 12 || 12}:${pad(first.getMinutes())}`
+    : `${first.getMonth() + 1}/${first.getDate()}`;
+  log.insertAdjacentHTML('beforeend', `<div class="chat-divider"><span>지난 대화 · ${label}</span></div>`);
+  for (const h of list) {
+    if (h.role === 'user') addMsg('user', esc(h.text));
+    else {
+      const el = addMsg('bot', md(stripActions(h.text)));
+      renderActionCards(el, h.text, { past: true });
+    }
+  }
+  log.scrollTop = log.scrollHeight;
+}
+
 function autoGrow() {
   const t = $('#ai-input');
   t.style.height = 'auto';
@@ -888,6 +910,7 @@ async function init() {
   loadCalendar();
   loadAiStatus();
   renderAiProfile();
+  restoreChat();
   setInterval(tickClock, 1000);
   setInterval(() => loadWeather(), 10 * 60e3);
   setInterval(() => loadCalendar(true), 15 * 60e3);

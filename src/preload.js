@@ -25,6 +25,7 @@ contextBridge.exposeInMainWorld('widget', {
   aiLogin: (provider) => ipcRenderer.invoke('ai:login', provider),
   aiLogout: (provider) => ipcRenderer.invoke('ai:logout', provider),
   resetChat: () => ipcRenderer.invoke('ai:reset'),
+  chatHistory: () => ipcRenderer.invoke('ai:history'),
   abortChat: () => ipcRenderer.invoke('ai:abort'),
   weatherLocations: (force) => ipcRenderer.invoke('weather:locations', force),
   weatherNationwide: (force) => ipcRenderer.invoke('weather:nationwide', force),

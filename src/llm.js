@@ -272,8 +272,29 @@ async function logout(provider) {
 
 // ───────────────────────── 대화 ─────────────────────────
 
-let history = []; // { role: 'user' | 'assistant', text }
+let history = []; // { role: 'user' | 'assistant', text, at }
 let current = null; // { proc, abort() }
+let persist = null; // { load(): [], save(list) } — main.js 가 파일 저장을 연결한다
+
+const HISTORY_MAX = 40;               // 저장·표시하는 메시지 수
+const CONTEXT_WINDOW_MS = 12 * 3600e3; // 프롬프트에 넣는 이전 대화는 최근 12시간만
+
+function setPersistence(p) {
+  persist = p;
+  try {
+    const list = p.load();
+    history = Array.isArray(list) ? list.filter((h) => h && typeof h.text === 'string' && ['user', 'assistant'].includes(h.role)).slice(-HISTORY_MAX) : [];
+  } catch {
+    history = [];
+  }
+}
+
+function saveHistory() {
+  history = history.slice(-HISTORY_MAX);
+  try { persist?.save(history); } catch { /* 저장 실패는 대화를 막지 않는다 */ }
+}
+
+const getHistory = () => history;
 
 const BASE_INSTRUCTIONS = [
   '당신은 사용자의 Windows 바탕화면 위젯에 들어 있는 개인 비서입니다.',
@@ -350,7 +371,7 @@ function buildPrompt(text, context, system) {
   const parts = [];
   if (system) parts.push(system, '');
   parts.push('[사용자의 현재 상황 — 질문과 관련 있을 때만 활용]', context, '');
-  const recent = history.slice(-12);
+  const recent = history.filter((h) => Date.now() - (h.at || 0) < CONTEXT_WINDOW_MS).slice(-12);
   if (recent.length) {
     parts.push('[이전 대화]');
     for (const h of recent) parts.push(`${h.role === 'user' ? '사용자' : '비서'}: ${h.text}`);
@@ -527,7 +548,9 @@ async function chat({ provider, model, effort, webSearch, persona, text, context
 
   if (result.stage === 'ABORTED') return { ok: false, aborted: true };
   if (result.stage !== 'COMPLETE') return { ok: false, stage: result.stage, error: MESSAGES[result.stage] || MESSAGES.PROCESS_NONZERO };
-  history.push({ role: 'user', text }, { role: 'assistant', text: result.answer });
+  const at = Date.now();
+  history.push({ role: 'user', text, at }, { role: 'assistant', text: result.answer, at });
+  saveHistory();
   return { ok: true };
 }
 
@@ -538,11 +561,12 @@ function abort() {
 function reset() {
   abort();
   history = [];
+  saveHistory();
 }
 
 module.exports = {
-  status, login, logout, chat, abort, reset,
+  status, login, logout, chat, abort, reset, setPersistence, getHistory,
   // 테스트용
   PRESETS,
-  _internal: { systemText, parseCodexStatus, parseClaudeStatus, execEnv, loginEnv, codexArgs, claudeArgs, codexRuntime, CODEX_HOME },
+  _internal: { buildPrompt, systemText, parseCodexStatus, parseClaudeStatus, execEnv, loginEnv, codexArgs, claudeArgs, codexRuntime, CODEX_HOME },
 };

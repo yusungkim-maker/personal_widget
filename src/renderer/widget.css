@@ -437,13 +437,13 @@ kbd { font-family: inherit; font-size: 10px; padding: 0 4px; border-radius: 4px;
 .act-btns .btn, .act-btns .link { white-space: nowrap; flex: none; }
 .act-ok { font-size: 11px; color: var(--flex); }
 /* 처리한 카드는 결과 문구를 제목 아래 줄로 내려, 제목·날짜 폭을 지킨다 */
-.act-card.done { grid-template-columns: 26px minmax(0, 1fr); align-items: start; row-gap: 6px; }
-.act-card.done .act-ico { grid-row: 1 / span 2; align-self: center; }
-.act-card.done .act-btns {
+.act-card.done, .act-card.past { grid-template-columns: 26px minmax(0, 1fr); align-items: start; row-gap: 6px; }
+.act-card.done .act-ico, .act-card.past .act-ico { grid-row: 1 / span 2; align-self: center; }
+.act-card.done .act-btns, .act-card.past .act-btns {
   grid-column: 2; justify-content: space-between; flex-wrap: wrap; gap: 4px 8px;
   padding-top: 6px; border-top: 1px dashed var(--line);
 }
-.act-card.done .act-btns .link { padding: 1px 4px; font-size: 11px; }
+.act-card.done .act-btns .link, .act-card.past .act-btns .link { padding: 1px 4px; font-size: 11px; }
 
 /* 설정: 구글 연결 */
 .gcal-state { display: flex; align-items: center; gap: 7px; font-size: 12px; line-height: 1.5; margin-bottom: 8px; }
@@ -519,3 +519,9 @@ body.compact #app > section:not(#sec-clock):not(#sec-today):not(#settings) { dis
 .today-list .tl-h { font-size: 11px; font-weight: 700; color: var(--fg-2); margin: 4px 0 2px; }
 .today-list .tl-empty { font-size: 12px; color: var(--muted); }
 #btn-compact.on { color: var(--accent); }
+
+/* 지난 대화 */
+.chat-divider { display: flex; align-items: center; gap: 8px; font-size: 10.5px; color: var(--muted); margin: 2px 0; }
+.chat-divider::before, .chat-divider::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+.act-card.past { opacity: .75; }
+.act-past { font-size: 10.5px; color: var(--muted); white-space: nowrap; }

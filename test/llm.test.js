@@ -91,3 +91,22 @@ test('고정 버전 Codex 런타임만 사용한다', () => {
   assert.strictEqual(rt.version, '0.158.0');
   assert.ok(rt.prefix[0].includes(path.join('node_modules', '@openai', 'codex')));
 });
+
+test('대화 기억: 저장된 대화를 불러오고, 프롬프트에는 최근 12시간만 넣는다', () => {
+  let saved = null;
+  llm.setPersistence({
+    load: () => [
+      { role: 'user', text: '어제 질문', at: Date.now() - 20 * 3600e3 },
+      { role: 'assistant', text: '어제 답', at: Date.now() - 20 * 3600e3 },
+      { role: 'user', text: '방금 질문', at: Date.now() - 60e3 },
+      { role: 'assistant', text: '방금 답', at: Date.now() - 60e3 },
+      { bad: true },
+    ],
+    save: (l) => { saved = l; },
+  });
+  assert.strictEqual(llm.getHistory().length, 4);
+  const prompt = llm._internal.buildPrompt('새 질문', '상황', null);
+  assert.ok(prompt.includes('방금 질문') && !prompt.includes('어제 질문'));
+  llm.reset();
+  assert.deepStrictEqual(saved, []);
+});

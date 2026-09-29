@@ -320,6 +320,7 @@ ipcMain.handle('ai:chat', async (e, text, context) => {
     (delta) => send('ai:delta', delta), (s) => send('ai:status', s));
 });
 ipcMain.handle('ai:reset', () => llm.reset());
+ipcMain.handle('ai:history', () => llm.getHistory());
 ipcMain.handle('ai:abort', () => llm.abort());
 
 ipcMain.handle('weather:locations', (_e, force) =>
@@ -339,6 +340,13 @@ ipcMain.handle('open-external', (_e, url) => {
 app.whenReady().then(() => {
   store.load();
   memos.register(() => win);
+  // 뭉치와의 대화를 파일로 저장해 두었다가 다시 켤 때 이어서 보여 준다
+  const chatFile = path.join(app.getPath('userData'), 'chat-history.json');
+  const fsx = require('fs');
+  llm.setPersistence({
+    load: () => JSON.parse(fsx.readFileSync(chatFile, 'utf8')),
+    save: (list) => fsx.writeFileSync(chatFile, JSON.stringify(list), 'utf8'),
+  });
   // 최초 1회: 환경변수로 받은 기상청 인증키를 암호화 저장소로 옮긴다
   if (process.env.KMA_SERVICE_KEY && !store.getSecret('weather')) {
     store.setSecret('weather', process.env.KMA_SERVICE_KEY);

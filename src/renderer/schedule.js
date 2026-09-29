@@ -554,11 +554,21 @@ function actionCardHtml(a, i) {
   </div>`;
 }
 
-function renderActionCards(bubble, text) {
+function renderActionCards(bubble, text, { past = false } = {}) {
   const actions = parseActions(text);
   if (!actions.length) return;
   bubble._actions = actions;
   bubble.insertAdjacentHTML('beforeend', `<div class="act-list">${actions.map(actionCardHtml).join('')}</div>`);
+  if (past) {
+    // 이미 처리했을 수 있으므로 바로 등록하는 버튼은 숨기고, 일정은 "수정해서 등록"만 남긴다
+    bubble.querySelectorAll('.act-card').forEach((card) => {
+      const a = actions[Number(card.dataset.i)];
+      card.classList.add('past');
+      card.querySelector('.act-btns').innerHTML = a.type === 'event'
+        ? '<span class="act-past">지난 제안</span><button class="link" data-do="edit">수정해서 등록</button>'
+        : '<span class="act-past">지난 제안</span>';
+    });
+  }
   $('#ai-log').scrollTop = $('#ai-log').scrollHeight;
 }
 
