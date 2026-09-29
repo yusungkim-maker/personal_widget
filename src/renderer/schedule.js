@@ -107,7 +107,7 @@ async function createGoogleEvent(input) {
   return null;
 }
 
-async function updateGoogleEvent(gid, input, { undo = false } = {}) {
+async function updateGoogleEvent(gid, input, { undo = false, quiet = false } = {}) {
   const original = cal.events.find((e) => e.gid === gid);
   const temp = { ...inputToLocal(input), id: `tmp-${Date.now()}`, pending: true, op: { kind: 'update', gid, input } };
   cal.hidden.add(gid);
@@ -120,7 +120,7 @@ async function updateGoogleEvent(gid, input, { undo = false } = {}) {
   if (r.ok) {
     cal.events = cal.events.map((e) => (e.gid === gid ? withFlex(r.value) : e));
     renderCalendar();
-    if (!undo && original) {
+    if (quiet) { /* 카드가 결과를 보여 준다 */ } else if (!undo && original) {
       toast('일정을 수정했어요', { label: '되돌리기', run: () => updateGoogleEvent(gid, eventToInput(original), { undo: true }) });
     } else if (undo) toast('수정을 되돌렸어요');
     return r.value;
@@ -130,7 +130,7 @@ async function updateGoogleEvent(gid, input, { undo = false } = {}) {
   return null;
 }
 
-async function deleteGoogleEvent(gid, { undo = false } = {}) {
+async function deleteGoogleEvent(gid, { undo = false, quiet = false } = {}) {
   const original = cal.events.find((e) => e.gid === gid);
   cal.hidden.add(gid);
   renderCalendar();
@@ -139,7 +139,7 @@ async function deleteGoogleEvent(gid, { undo = false } = {}) {
   if (r.ok) {
     cal.events = cal.events.filter((e) => e.gid !== gid);
     renderCalendar();
-    if (undo) toast('추가를 취소했어요');
+    if (quiet) { /* 카드가 결과를 보여 준다 */ } else if (undo) toast('추가를 취소했어요');
     else if (original) toast(`삭제했어요 · ${original.title}`, { label: '실행 취소', run: () => createGoogleEvent(eventToInput(original)) });
     return true;
   }
@@ -503,6 +503,37 @@ function validateAction(a) {
       input: { title, startDay: a.date, endDay: a.date, allDay, startTime: start || '09:00', endTime: end || '10:00', location: String(a.location || '').slice(0, 200), description: '', reminder: null },
     };
   }
+  const id = String(a.id || '').trim();
+  if (a.type === 'event_update' || a.type === 'event_delete') {
+    const ev = cal.events.find((e) => e.gid === id);
+    if (!ev) return { type: a.type, missing: true, label: '일정' };
+    if (ev.editable === false) return { type: a.type, locked: true, label: ev.title };
+    if (a.type === 'event_delete') return { type: a.type, id, before: ev };
+    const before = eventToInput(ev);
+    const after = { ...before };
+    if (typeof a.title === 'string' && a.title.trim()) after.title = a.title.trim().slice(0, 200);
+    if (DAY_RE.test(a.date || '')) { after.startDay = a.date; after.endDay = a.date; }
+    if (typeof a.location === 'string') after.location = a.location.slice(0, 200);
+    if (a.allDay === true) after.allDay = true;
+    if (TIME_RE.test(a.start || '')) {
+      const len = toMin(before.endTime) - toMin(before.startTime);
+      after.allDay = false;
+      after.startTime = a.start;
+      after.endTime = TIME_RE.test(a.end || '') ? a.end : fromMin(toMin(a.start) + (len > 0 ? len : 60));
+    } else if (TIME_RE.test(a.end || '')) after.endTime = a.end;
+    if (!after.allDay && toMin(after.endTime) <= toMin(after.startTime)) after.endTime = fromMin(toMin(after.startTime) + 60);
+    return { type: a.type, id, before, after };
+  }
+  if (['todo_done', 'todo_update', 'todo_delete'].includes(a.type)) {
+    const t = config.todos.find((x) => x.id === id);
+    if (!t) return { type: a.type, missing: true, label: '할 일' };
+    const patch = {};
+    if (a.type === 'todo_update') {
+      if (typeof a.text === 'string' && a.text.trim()) patch.text = a.text.trim().slice(0, 200);
+      if (a.date === null || DAY_RE.test(a.date || '')) patch.date = a.date || null;
+    }
+    return { type: a.type, id, before: t, patch };
+  }
   if (a.type === 'memo') {
     const title = String(a.title || '').trim().slice(0, 200);
     const body = String(a.body || '').slice(0, 20000);
@@ -528,7 +559,47 @@ function parseActions(text) {
   return out;
 }
 
+function eventDiff(b, a) {
+  const d = [];
+  if (a.title !== b.title) d.push(`제목 “${b.title}” → “${a.title}”`);
+  if (a.startDay !== b.startDay || a.allDay !== b.allDay || a.startTime !== b.startTime || a.endTime !== b.endTime) {
+    // 같은 날 시간만 바뀌면 시간만 보여 준다
+    const range = (r) => NL.describe(r).replace(/^.*?\)(?: · \S+)? /, '');
+    d.push(a.startDay === b.startDay ? `${range(b)} → ${range(a)}` : `${NL.describe(b)} → ${NL.describe(a)}`);
+  }
+  if ((a.location || '') !== (b.location || '')) d.push(`장소 ${b.location || '없음'} → ${a.location || '없음'}`);
+  return d.length ? d : ['바뀌는 내용이 없어요'];
+}
+
+const TODO_WHEN = (date) => (date ? `${NL.describe({ startDay: date, allDay: true }).replace(' 종일', '')}까지` : '날짜 없음');
+
 function actionCardHtml(a, i) {
+  const card = (ico, cls, title, sub, btns) => `<div class="act-card" data-i="${i}">
+      <span class="act-ico ${cls}">${ico}</span>
+      <div class="act-body"><div class="act-title">${title}</div><div class="act-sub">${sub}</div></div>
+      <div class="act-btns">${btns}</div></div>`;
+  if (a.missing || a.locked) {
+    return card(ICON_CAL, 'warn', esc(a.label), a.locked ? '초대받은 일정이라 바꿀 수 없어요' : '대상을 찾지 못했어요 (이미 바뀌었거나 지워졌을 수 있어요)', '');
+  }
+  if (a.type === 'event_update') {
+    return card(ICON_CAL, '', `일정 변경 · ${esc(a.before.title)}`, eventDiff(a.before, a.after).map(esc).join('<br>'),
+      '<button class="btn sm" data-do="add">변경</button><button class="link" data-do="edit">수정</button>');
+  }
+  if (a.type === 'event_delete') {
+    return card(ICON_CAL, 'danger', `일정 삭제 · ${esc(a.before.title)}`, esc(NL.describe(eventToInput(a.before))), '<button class="btn sm danger-solid" data-do="add">삭제</button>');
+  }
+  if (a.type === 'todo_done') {
+    return card(ICON_TODO, 'todo', `완료 처리 · ${esc(a.before.text)}`, `할 일 · ${esc(TODO_WHEN(a.before.date))}`, '<button class="btn sm" data-do="add">완료</button>');
+  }
+  if (a.type === 'todo_update') {
+    const d = [];
+    if (a.patch.text && a.patch.text !== a.before.text) d.push(`“${a.before.text}” → “${a.patch.text}”`);
+    if ('date' in a.patch && a.patch.date !== (a.before.date || null)) d.push(`${TODO_WHEN(a.before.date)} → ${TODO_WHEN(a.patch.date)}`);
+    return card(ICON_TODO, 'todo', `할 일 변경 · ${esc(a.before.text)}`, (d.length ? d : ['바뀌는 내용이 없어요']).map(esc).join('<br>'), '<button class="btn sm" data-do="add">변경</button>');
+  }
+  if (a.type === 'todo_delete') {
+    return card(ICON_TODO, 'danger', `할 일 삭제 · ${esc(a.before.text)}`, esc(TODO_WHEN(a.before.date)), '<button class="btn sm danger-solid" data-do="add">삭제</button>');
+  }
   if (a.type === 'event') {
     const r = { ...a.input };
     return `<div class="act-card" data-i="${i}">
@@ -590,6 +661,35 @@ $('#ai-log').addEventListener('click', async (e) => {
     await card._undo?.();
     card.classList.remove('done');
     card.outerHTML = actionCardHtml(a, card.dataset.i);
+    return;
+  }
+  // 기존 항목 바꾸기: 처리 전 상태를 기억해 두었다가 실행 취소로 되돌린다
+  if (a.type === 'event_update' && act === 'edit') {
+    openComposer(a.after, { editGid: a.id });
+    $('#sec-calendar').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+  if (a.type === 'event_update' && act === 'add') {
+    btn.disabled = true;
+    const ok = await updateGoogleEvent(a.id, a.after, { quiet: true });
+    if (ok) setCardDone(card, '구글 캘린더에 반영했어요', () => updateGoogleEvent(a.id, a.before, { quiet: true }));
+    else btn.disabled = false;
+    return;
+  }
+  if (a.type === 'event_delete' && act === 'add') {
+    btn.disabled = true;
+    const ok = await deleteGoogleEvent(a.id, { quiet: true });
+    if (ok) setCardDone(card, '삭제했어요', () => createGoogleEvent(eventToInput(a.before)));
+    else btn.disabled = false;
+    return;
+  }
+  if (['todo_done', 'todo_update', 'todo_delete'].includes(a.type) && act === 'add') {
+    const snapshot = config.todos;
+    if (a.type === 'todo_done') saveTodos(config.todos.map((t) => (t.id === a.id ? { ...t, done: true } : t)));
+    if (a.type === 'todo_update') saveTodos(config.todos.map((t) => (t.id === a.id ? { ...t, ...a.patch } : t)));
+    if (a.type === 'todo_delete') saveTodos(config.todos.filter((t) => t.id !== a.id));
+    const msg = { todo_done: '완료 처리했어요', todo_update: '할 일을 바꿨어요', todo_delete: '할 일을 지웠어요' }[a.type];
+    setCardDone(card, msg, () => saveTodos(snapshot));
     return;
   }
   if (a.type === 'memo' && act === 'add') {

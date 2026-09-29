@@ -454,14 +454,21 @@ function aiContext() {
     lines.push(`날씨(${p.name}): 현재 ${c.temp}° ${c.desc}, 습도 ${c.humidity}% / ${d}`);
   }
   const today = ymd(now);
-  const until = ymd(new Date(Date.now() + 7 * 864e5));
-  const evs = cal.events.filter((e) => e.endDay >= today && e.startDay <= until);
+  const since = ymd(new Date(Date.now() - 3 * 864e5));
+  const until = ymd(new Date(Date.now() + 14 * 864e5));
+  const evs = allEvents().filter((e) => !e.pending && e.endDay >= since && e.startDay <= until);
   if (evs.length) {
-    lines.push('앞으로 7일 일정:');
-    for (const e of evs.slice(0, 20)) lines.push(`- ${e.startDay} ${e.allDay ? '종일' : fmtEventTime(e, e.startDay)} ${e.title}${e.holiday ? ' (공휴일)' : e.flex ? ' (flex 휴가·근무)' : ''}`);
+    lines.push('일정 (최근 3일 ~ 앞으로 14일, [id:...] 가 있는 것만 수정·삭제 가능):');
+    for (const e of evs.slice(0, 40)) {
+      const id = e.gid && e.editable !== false ? `[id:${e.gid}] ` : '';
+      lines.push(`- ${id}${e.startDay} ${e.allDay ? '종일' : fmtEventTime(e, e.startDay)} ${e.title}${e.location ? ` @${e.location}` : ''}${e.holiday ? ' (공휴일)' : e.flex ? ' (flex 휴가·근무)' : ''}`);
+    }
   }
   const todos = config.todos.filter((t) => !t.done);
-  if (todos.length) lines.push(`남은 할 일: ${todos.map((t) => (t.date ? `${t.text}(${t.date}까지)` : t.text)).join(', ')}`);
+  if (todos.length) {
+    lines.push('남은 할 일:');
+    for (const t of todos.slice(0, 40)) lines.push(`- [id:${t.id}] ${t.text}${t.date ? ` (${t.date}까지)` : ''}`);
+  }
   const recentMemos = config.ai.shareMemos === false ? [] : [...(config.memos || [])].sort((x, y) => y.updatedAt - x.updatedAt).slice(0, 5);
   if (recentMemos.length) {
     lines.push('최근 메모:');

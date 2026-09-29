@@ -69,6 +69,7 @@ test('성격·지침은 시스템 프롬프트에 들어가고, 비어 있으면
   assert.ok(!systemText({ catTone: false }).includes('[말투]'));
   assert.ok(systemText({}).includes('mungchi-action'), '일정 등록 제안 형식을 안내한다');
   assert.ok(systemText({}).includes('"type":"memo"'), '메모 제안 형식을 안내한다');
+  assert.ok(systemText({}).includes('event_update') && systemText({}).includes('todo_done'), '수정·완료 형식을 안내한다');
   const s = systemText({ personaPreset: 'concise', about: '홍길동, 마케팅팀', rules: '항상 표로 정리' });
   assert.ok(s.includes(llm.PRESETS.concise) && s.includes('홍길동, 마케팅팀') && s.includes('항상 표로 정리'));
   assert.ok(systemText({ persona: '직접 쓴 성격' }).includes('직접 쓴 성격'));
