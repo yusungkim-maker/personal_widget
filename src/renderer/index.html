@@ -40,6 +40,7 @@
           <button class="link" id="btn-nation">전국 날씨 보기 ›</button>
         </header>
         <div class="card-sum" id="sum-weather"></div>
+        <div id="w-warn" class="w-warn" hidden></div>
         <div id="w-list" class="w-list"></div>
         <div id="w-hourly" class="hourly"></div>
         <footer class="card-f">
@@ -242,6 +243,8 @@
             <button class="btn ghost" id="save-kma-key">저장</button>
           </div>
           <p class="hint" id="kma-key-state"></p>
+          <div class="air-state hint" id="air-state"></div>
+          <button class="btn ghost" id="air-recheck">활용 신청했어요 · 다시 확인</button>
           <p class="sub">표시 지역 (최대 3곳)</p>
           <ul id="loc-list" class="loc-list"></ul>
           <form id="loc-form" class="key-row">
@@ -327,6 +330,7 @@
   <script src="schedule.js"></script>
   <script src="memos.js"></script>
   <script src="layout.js"></script>
+  <script src="air.js"></script>
   <script src="notify.js"></script>
   <script src="brief.js"></script>
 </body>

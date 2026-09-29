@@ -538,3 +538,15 @@ body.compact #app > section:not(#sec-clock):not(#sec-today):not(#settings) { dis
 
 .chat-divider.brief { color: #f5c933; }
 .chat-divider.brief::before, .chat-divider.brief::after { background: rgba(245, 201, 51, .35); }
+
+/* 미세먼지·특보 */
+.w-dust { font-size: 11px; color: var(--muted); margin-top: 2px; min-height: 0; }
+.dust { white-space: nowrap; font-size: 11px; color: var(--muted); }
+.dust-g { font-weight: 600; }
+.dust-g.good { color: #5ab0ff; } .dust-g.normal { color: #57c79a; } .dust-g.bad { color: #ffa94d; } .dust-g.worst { color: #ff6b6b; }
+.dust-src { font-size: 9.5px; padding: 0 4px; border-radius: 4px; border: 1px solid var(--line); color: var(--muted); margin-left: 2px; }
+.w-warn { margin: -2px 0 8px; display: flex; flex-direction: column; gap: 4px; }
+.w-warn[hidden] { display: none; }
+.warn-row { font-size: 12px; padding: 6px 9px; border-radius: 9px; color: #ffcf8a; background: rgba(255, 169, 77, .14); border: 1px solid rgba(255, 169, 77, .35); }
+.air-state { display: flex; flex-direction: column; gap: 4px; margin: 10px 0 6px; }
+.air-state a { color: var(--accent); text-decoration: none; }

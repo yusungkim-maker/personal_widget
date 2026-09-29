@@ -119,6 +119,7 @@ function renderWeather() {
       <div>
         <div class="w-name">${esc(p.name)}</div>
         <div class="w-desc">${esc(c.desc)} · 습도 ${c.humidity}%</div>
+        <div class="w-dust" data-dust-row="${esc(p.name)}"></div>
       </div>
       <div class="w-right">
         <div class="w-temp">${fmtT(c.temp)}</div>
@@ -146,6 +147,7 @@ async function loadWeather(force = false) {
   renderWeather();
   try {
     weatherData = await widget.weatherLocations(force);
+    loadAir();
   } catch (e) {
     weatherData = config.weather.locations.map((l) => ({ ...l, ok: false, error: e.message }));
   }
@@ -453,6 +455,7 @@ function aiContext() {
     const d = p.data.daily.map((x) => `${x.date.slice(4, 6)}/${x.date.slice(6)} 최저 ${x.min}° 최고 ${x.max}° 강수확률 ${x.pop}%`).join(', ');
     lines.push(`날씨(${p.name}): 현재 ${c.temp}° ${c.desc}, 습도 ${c.humidity}% / ${d}`);
   }
+  lines.push(...airContextLines());
   const today = ymd(now);
   const since = ymd(new Date(Date.now() - 3 * 864e5));
   const until = ymd(new Date(Date.now() + 14 * 864e5));
@@ -788,6 +791,7 @@ function fillSettings() {
   $('#set-ical').value = config.calendar.icalUrls.join('\n');
   $('#set-holidays').checked = config.calendar.koreanHolidays;
   fillNotifySettings();
+  renderAirSettings();
   fillBriefSettings();
   renderHotkeySettings();
   $('#set-effort').value = config.ai.effort;

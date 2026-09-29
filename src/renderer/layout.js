@@ -66,6 +66,8 @@ function renderSummaries() {
   $('#sum-weather').innerHTML = w.length
     ? w.map((p) => `${esc(p.name)} <b>${fmtT(p.data.current.temp)}</b> ${esc(p.data.current.desc)}`).join(sep)
       + (rain >= 60 ? `${sep}<span class="warn">☂ 비 ${rain}%</span>` : '')
+      + ((typeof airData !== 'undefined' && airData.some((a) => a.grade >= 2)) ? `${sep}<span class="warn">미세먼지 나쁨</span>` : '')
+      + ((typeof warnData !== 'undefined' && warnData.warnings?.length) ? `${sep}<span class="warn">⚠ ${esc(warnData.warnings[0].names[0])}</span>` : '')
     : '날씨를 불러오는 중…';
 
   // 달력

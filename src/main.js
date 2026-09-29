@@ -7,6 +7,7 @@ const llm = require('./llm');
 const gcal = require('./gcal');
 const memos = require('./memos');
 const quick = require('./quick');
+const air = require('./air');
 const weather = require('./weather');
 
 const BASE_WIDTH = 340;
@@ -345,6 +346,10 @@ ipcMain.handle('weather:locations', (_e, force) =>
   weather.fetchPlaces(store.getSecret('weather'), cfg().weather.locations, force));
 ipcMain.handle('weather:nationwide', (_e, force) =>
   weather.fetchPlaces(store.getSecret('weather'), weather.NATIONWIDE, force));
+ipcMain.handle('weather:air', () => air.fetchAir(store.getSecret('weather'), cfg().weather.locations));
+ipcMain.handle('weather:warnings', () => air.fetchWarnings(store.getSecret('weather'), cfg().weather.locations.map((l) => l.name)));
+ipcMain.handle('weather:air-status', () => air.status());
+ipcMain.handle('weather:air-recheck', () => air.resetBlocks());
 ipcMain.handle('weather:search', (_e, q) => weather.searchCity(q));
 ipcMain.handle('weather:open-nationwide', () => openNationwide());
 ipcMain.handle('window:show-widget', () => { win?.show(); win?.focus(); });
