@@ -188,6 +188,17 @@
         </div>
 
         <div class="group">
+          <h3>알림</h3>
+          <label class="check"><input type="checkbox" id="set-notify-events"> 일정 시작 전에 알려 주기
+            <select id="set-notify-minutes" class="field inline-select">
+              <option value="5">5분 전</option><option value="10">10분 전</option><option value="15">15분 전</option><option value="30">30분 전</option><option value="60">1시간 전</option>
+            </select></label>
+          <label class="check"><input type="checkbox" id="set-notify-todos"> 매일 오늘 마감·지난 할 일 알려 주기
+            <input type="time" id="set-notify-time" class="field inline-select" step="300"></label>
+          <button class="btn ghost" id="notify-test">알림 테스트</button>
+        </div>
+
+        <div class="group">
           <h3>모양</h3>
           <div class="seg" id="set-theme">
             <button data-v="dark">다크</button>
@@ -301,5 +312,6 @@
   <script src="schedule.js"></script>
   <script src="memos.js"></script>
   <script src="layout.js"></script>
+  <script src="notify.js"></script>
 </body>
 </html>

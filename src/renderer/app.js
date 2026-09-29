@@ -785,6 +785,7 @@ function fillSettings() {
   $('#kma-key-state').textContent = config.weather.hasKey ? '✓ 인증키가 저장되어 있어요. 바꾸려면 새 키를 입력하세요.' : '공공데이터포털(data.go.kr)에서 “기상청_단기예보 조회서비스”를 신청하고 일반 인증키를 입력하세요.';
   $('#set-ical').value = config.calendar.icalUrls.join('\n');
   $('#set-holidays').checked = config.calendar.koreanHolidays;
+  fillNotifySettings();
   $('#set-effort').value = config.ai.effort;
   $('#set-websearch').checked = config.ai.webSearch;
   $('#set-share-memos').checked = config.ai.shareMemos !== false;

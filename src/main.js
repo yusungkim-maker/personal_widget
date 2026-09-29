@@ -23,7 +23,23 @@ if (!app.requestSingleInstanceLock()) {
   app.on('second-instance', () => win?.show());
 }
 
-app.setAppUserModelId('com.yusk.widget');
+const APP_ID = 'com.yusk.widget';
+app.setAppUserModelId(APP_ID);
+
+// Windows 는 시작 메뉴 바로 가기에 같은 AppUserModelID 가 등록된 앱의 알림만 보여 준다.
+// 설치판은 설치 프로그램이 만들어 주고, 개발 실행일 때는 여기서 만든다.
+function ensureStartMenuShortcut() {
+  if (process.platform !== 'win32' || app.isPackaged) return;
+  const { shell } = require('electron');
+  const lnk = path.join(app.getPath('appData'), 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Yusk Widget.lnk');
+  const want = { target: process.execPath, args: `"${path.resolve(app.getAppPath())}"`, appUserModelId: APP_ID, description: 'Yusk Widget' };
+  try {
+    const cur = shell.readShortcutLink(lnk);
+    if (cur.target === want.target && cur.args === want.args && cur.appUserModelId === APP_ID) return;
+  } catch { /* 없음 */ }
+  // 'replace' 는 이미 있는 파일에만 쓸 수 있다
+  try { shell.writeShortcutLink(lnk, require('fs').existsSync(lnk) ? 'replace' : 'create', want); } catch { /* 알림만 안 뜰 뿐 */ }
+}
 
 // ───────────────────────── 창 ─────────────────────────
 
@@ -329,6 +345,7 @@ ipcMain.handle('weather:nationwide', (_e, force) =>
   weather.fetchPlaces(store.getSecret('weather'), weather.NATIONWIDE, force));
 ipcMain.handle('weather:search', (_e, q) => weather.searchCity(q));
 ipcMain.handle('weather:open-nationwide', () => openNationwide());
+ipcMain.handle('window:show-widget', () => { win?.show(); win?.focus(); });
 ipcMain.handle('window:close-self', (e) => BrowserWindow.fromWebContents(e.sender)?.close());
 
 ipcMain.handle('open-external', (_e, url) => {
@@ -339,6 +356,7 @@ ipcMain.handle('open-external', (_e, url) => {
 
 app.whenReady().then(() => {
   store.load();
+  ensureStartMenuShortcut();
   memos.register(() => win);
   // 뭉치와의 대화를 파일로 저장해 두었다가 다시 켤 때 이어서 보여 준다
   const chatFile = path.join(app.getPath('userData'), 'chat-history.json');

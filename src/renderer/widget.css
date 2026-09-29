@@ -530,3 +530,6 @@ body.compact #app > section:not(#sec-clock):not(#sec-today):not(#settings) { dis
 .act-ico.danger { background: color-mix(in srgb, var(--sun) 18%, transparent); color: var(--sun); }
 .btn.danger-solid { background: var(--sun); color: #fff; }
 .act-card .act-sub br + * { margin-top: 2px; }
+
+.settings .check .inline-select { width: auto; margin-left: auto; padding: 3px 6px; font-size: 11.5px; color-scheme: dark; }
+:root[data-theme="light"] .settings .check .inline-select { color-scheme: light; }

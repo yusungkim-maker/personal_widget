@@ -32,6 +32,7 @@ contextBridge.exposeInMainWorld('widget', {
   searchPlace: (q) => ipcRenderer.invoke('weather:search', q),
   openNationwide: () => ipcRenderer.invoke('weather:open-nationwide'),
   closeSelf: () => ipcRenderer.invoke('window:close-self'),
+  showWidget: () => ipcRenderer.invoke('window:show-widget'),
   memo: {
     get: (id) => ipcRenderer.invoke('memo:get', id),
     open: (id) => ipcRenderer.invoke('memo:open', id),

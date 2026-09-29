@@ -63,6 +63,7 @@ const DEFAULTS = {
     rules: '',    // 항상 지킬 지침
   },
   collapsed: {}, // 접은 카드 { weather: true, ... }
+  notify: { events: true, eventMinutes: 10, todos: true, todoTime: '09:00' },
   todos: [],
   memos: [], // { id, title, body, color, createdAt, updatedAt }
   autoStart: false,
