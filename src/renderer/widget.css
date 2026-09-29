@@ -484,3 +484,38 @@ kbd { font-family: inherit; font-size: 10px; padding: 0 4px; border-radius: 4px;
 .memo-empty { font-size: 12px; color: var(--muted); padding: 4px 0; }
 .memo-empty b { color: var(--accent); }
 .act-ico.memo { background: rgba(255, 229, 122, .25); color: #f5c933; }
+
+/* ───────── 카드 접기 ───────── */
+.card-toggle {
+  display: flex; align-items: center; gap: 6px; min-width: 0;
+  padding: 2px 6px 2px 2px; margin-left: -4px; border-radius: 8px; color: inherit;
+}
+.card-toggle:hover { background: var(--hover); }
+.card-toggle .chev { width: 13px; height: 13px; flex: none; color: var(--muted); transition: transform .18s; }
+.card.collapsed .card-toggle .chev { transform: rotate(-90deg); }
+.card-sum { display: none; font-size: 12px; color: var(--fg-2); line-height: 1.5; margin-top: -4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card.collapsed { padding-bottom: 12px; }
+.card.collapsed > :not(.card-h):not(.card-sum) { display: none !important; }
+.card.collapsed > .card-sum { display: block; }
+.card.collapsed .card-h { margin-bottom: 6px; }
+.card.collapsed .card-h > :not(.card-toggle) { visibility: hidden; }
+.card.collapsed#sec-weather .card-h > #btn-nation { visibility: visible; }
+.card-sum b { color: var(--fg); font-weight: 600; }
+.card-sum .sep { color: var(--muted); margin: 0 4px; }
+.card-sum .warn { color: var(--sun); }
+
+/* ───────── 컴팩트 모드 ───────── */
+body.compact #app > section:not(#sec-clock):not(#sec-today):not(#settings) { display: none !important; }
+.today { display: flex; flex-direction: column; gap: 10px; }
+.today[hidden] { display: none; }
+.today-weather { display: flex; flex-direction: column; gap: 4px; }
+.tw-row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+.tw-row .nm { font-weight: 600; min-width: 34px; }
+.tw-row .tp { font-size: 17px; font-weight: 300; min-width: 34px; font-variant-numeric: tabular-nums; }
+.tw-row .mm { color: var(--fg-2); font-size: 11px; font-variant-numeric: tabular-nums; }
+.tw-row .mm .hi { color: var(--sun); } .tw-row .mm .lo { color: var(--sat); } .tw-row .mm .pop { color: #5ab0ff; }
+.tw-row .dust { margin-left: auto; }
+.today-list { border-top: 1px solid var(--line); padding-top: 8px; display: flex; flex-direction: column; gap: 2px; }
+.today-list .tl-h { font-size: 11px; font-weight: 700; color: var(--fg-2); margin: 4px 0 2px; }
+.today-list .tl-empty { font-size: 12px; color: var(--muted); }
+#btn-compact.on { color: var(--accent); }

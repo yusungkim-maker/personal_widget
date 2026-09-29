@@ -39,4 +39,5 @@ widget.memo.onChanged((list) => {
   renderMemos();
 });
 
-renderMemos();
+// 설정을 불러온 뒤 app.js 의 init 에서 처음 그린다
+if (config) renderMemos();

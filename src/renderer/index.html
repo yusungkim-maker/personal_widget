@@ -16,6 +16,7 @@
         <div class="clock-top">
           <span id="greeting" class="muted"></span>
           <div class="tools">
+            <button class="icon-btn" id="btn-compact" title="컴팩트 모드"></button>
             <button class="icon-btn" id="btn-mode" title="창 모드"></button>
             <button class="icon-btn" id="btn-settings" title="설정">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
@@ -26,12 +27,19 @@
         <div id="date" class="date"></div>
       </section>
 
+      <!-- 컴팩트 모드: 오늘 한눈에 -->
+      <section id="sec-today" class="card today" hidden>
+        <div id="today-weather" class="today-weather"></div>
+        <div id="today-list" class="today-list"></div>
+      </section>
+
       <!-- 날씨 -->
       <section id="sec-weather" class="card">
         <header class="card-h drag">
-          <h2>날씨</h2>
+          <button class="card-toggle" data-card="weather" title="접기/펼치기"><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg><h2>날씨</h2></button>
           <button class="link" id="btn-nation">전국 날씨 보기 ›</button>
         </header>
+        <div class="card-sum" id="sum-weather"></div>
         <div id="w-list" class="w-list"></div>
         <div id="w-hourly" class="hourly"></div>
         <footer class="card-f">
@@ -45,7 +53,7 @@
       <!-- 달력 -->
       <section id="sec-calendar" class="card">
         <header class="card-h drag">
-          <h2 id="cal-title"></h2>
+          <button class="card-toggle" data-card="calendar" title="접기/펼치기"><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg><h2 id="cal-title"></h2></button>
           <div class="tools">
             <button class="icon-btn accent" id="cal-add" title="일정 추가 (날짜를 두 번 눌러도 돼요)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
             <button class="icon-btn" id="cal-prev" title="이전 달">‹</button>
@@ -53,6 +61,7 @@
             <button class="icon-btn" id="cal-next" title="다음 달">›</button>
           </div>
         </header>
+        <div class="card-sum" id="sum-calendar"></div>
         <div class="cal-grid cal-dow"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>
         <div id="cal-grid" class="cal-grid"></div>
 
@@ -109,9 +118,10 @@
       <!-- 할 일 -->
       <section id="sec-todo" class="card">
         <header class="card-h drag">
-          <h2>할 일 <span id="todo-count" class="count"></span></h2>
+          <button class="card-toggle" data-card="todo" title="접기/펼치기"><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg><h2>할 일 <span id="todo-count" class="count"></span></h2></button>
           <button class="link" id="todo-clear">완료 항목 지우기</button>
         </header>
+        <div class="card-sum" id="sum-todo"></div>
         <form id="todo-form" class="todo-form" autocomplete="off">
           <input id="todo-input" class="field" placeholder="할 일 추가 — 예: 금요일까지 보고서 (Enter)">
           <button type="button" class="icon-btn" id="todo-date-btn" title="날짜 지정 (달력에 표시돼요)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></button>
@@ -125,24 +135,26 @@
       <!-- 메모 -->
       <section id="sec-memo" class="card">
         <header class="card-h drag">
-          <h2>메모 <span id="memo-count" class="count"></span></h2>
+          <button class="card-toggle" data-card="memo" title="접기/펼치기"><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg><h2>메모 <span id="memo-count" class="count"></span></h2></button>
           <button class="icon-btn accent" id="memo-add" title="새 메모"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
         </header>
+        <div class="card-sum" id="sum-memo"></div>
         <ul id="memo-list" class="memo-list"></ul>
       </section>
 
       <!-- AI -->
       <section id="sec-ai" class="card">
         <header class="card-h drag">
-          <div class="ai-title" title="회색 브리티시 쇼트헤어 · 비서">
-            <span id="ai-avatar"></span>
+          <button class="card-toggle ai-title" data-card="ai" title="접기/펼치기">
+            <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg><span id="ai-avatar"></span>
             <h2 id="ai-name">뭉치</h2>
-          </div>
+          </button>
           <div class="tools">
             <select id="ai-model" class="model-pick" title="모델 선택"></select>
             <button class="link" id="ai-reset">새 대화</button>
           </div>
         </header>
+        <div class="card-sum" id="sum-ai"></div>
         <div id="ai-log" class="ai-log"></div>
         <form id="ai-form" class="ai-form">
           <textarea id="ai-input" class="field" rows="1" placeholder="무엇이든 물어보세요 (Enter 전송)"></textarea>
@@ -273,6 +285,7 @@
               <option value="high">깊이 생각 (high)</option>
             </select></label>
           <label class="check"><input type="checkbox" id="set-websearch"> 웹 검색 허용</label>
+          <label class="check"><input type="checkbox" id="set-share-memos"> 최근 메모를 뭉치에게 보여 주기 (키·비밀번호처럼 보이는 부분은 가려요)</label>
           <p class="hint">API 키 없이 구독 계정으로 대화해요. 사용량은 각 요금제에서 차감돼요. ChatGPT 는 위젯 전용으로 따로 로그인해서 Codex 앱 계정에 영향을 주지 않아요. 호출할 때마다 구독 로그인인지 확인하고, API 키 로그인이면 실행하지 않아요. 모델은 AI 비서 카드 위쪽에서 고를 수 있어요.</p>
         </div>
       </section>
@@ -287,5 +300,6 @@
   <script src="app.js"></script>
   <script src="schedule.js"></script>
   <script src="memos.js"></script>
+  <script src="layout.js"></script>
 </body>
 </html>

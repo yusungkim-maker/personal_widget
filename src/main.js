@@ -231,6 +231,10 @@ function refreshTray() {
     { type: 'separator' },
     { label: '투명도', submenu: opacityItems },
     { label: '크기', submenu: zoomItems },
+    {
+      label: '컴팩트 모드 (시계와 오늘만)', type: 'checkbox', checked: !!cfg().appearance.compact,
+      click: (i) => { store.update({ appearance: { compact: i.checked } }); broadcastConfig(); },
+    },
     { label: '위치 잠금', type: 'checkbox', checked: w.locked, click: (i) => setWindow({ locked: i.checked }) },
     { label: '클릭 통과 (마우스 무시)', type: 'checkbox', checked: w.clickThrough, click: (i) => setWindow({ clickThrough: i.checked }) },
     { label: '위치 초기화', click: () => { const p = defaultPosition(widthPx()); win.setPosition(p.x, p.y); store.update({ window: p }); } },

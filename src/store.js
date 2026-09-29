@@ -18,6 +18,7 @@ const DEFAULTS = {
     accent: '#8ab4ff',
     glass: 0.72, // 배경 농도 (0~1)
     clock24h: true,
+    compact: false, // 컴팩트 모드: 시계 + 오늘 카드만
     showSeconds: false,
   },
   sections: {
@@ -51,6 +52,7 @@ const DEFAULTS = {
     codexModel: null, // null 이면 Codex 기본 모델
     effort: 'low',
     webSearch: true,
+    shareMemos: true, // 최근 메모를 뭉치에게 보여 줄지 (비밀값처럼 보이는 부분은 항상 가림)
     // 모든 대화에 자동으로 들어가는 성격·지침 (새 대화를 시작해도 유지)
     name: '뭉치',
     profile: 'bsh-gray', // 회색 브리티시 쇼트헤어
@@ -60,6 +62,7 @@ const DEFAULTS = {
     about: '',    // 나에 대해
     rules: '',    // 항상 지킬 지침
   },
+  collapsed: {}, // 접은 카드 { weather: true, ... }
   todos: [],
   memos: [], // { id, title, body, color, createdAt, updatedAt }
   autoStart: false,

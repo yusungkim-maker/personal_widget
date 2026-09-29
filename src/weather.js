@@ -180,6 +180,12 @@ async function fetchWeather({ key, latitude, longitude, hours = 24 }) {
     };
   });
 
+  // 예보 최고·최저를 실제 현재 기온이 넘어서면 현재 기온으로 맞춘다
+  if (daily[0] && Number.isFinite(current.temp)) {
+    const t = Math.round(current.temp);
+    if (daily[0].max == null || t > daily[0].max) daily[0].max = t;
+    if (daily[0].min == null || t < daily[0].min) daily[0].min = t;
+  }
   return { current, hourly: nextHours, daily, grid, updatedAt: new Date().toISOString() };
 }
 

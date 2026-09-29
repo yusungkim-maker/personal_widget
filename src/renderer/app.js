@@ -430,6 +430,21 @@ function renderAiProfile() {
   }
 }
 
+// API 키·토큰·OAuth 비밀값처럼 보이는 문자열은 AI 에 보내기 전에 가린다
+const SECRET_PATTERNS = [
+  // "client_secret: 값", "비밀번호=값" 처럼 이름표가 붙은 값은 이름표는 두고 값만 가린다
+  [/((?:client[_ ]?secret|password|비밀번호|secret|token|api[_ ]?key|인증키)\s*[:=]\s*)\S+/gi, '$1[비밀값 숨김]'],
+  [/GOCSPX-[\w-]+/g, '[비밀값 숨김]'],                                        // Google OAuth client secret
+  [/\d{9,}-[a-z0-9]{16,}(?:\.apps\.googleusercontent\.com)?/gi, '[비밀값 숨김]'], // Google OAuth client id
+  [/AIza[\w-]{30,}/g, '[비밀값 숨김]'],                                       // Google API key
+  [/sk-(?:ant-)?[\w-]{16,}/g, '[비밀값 숨김]'],                               // Anthropic / OpenAI key
+  [/gh[pousr]_[A-Za-z0-9]{30,}/g, '[비밀값 숨김]'],                           // GitHub token
+  [/\b[a-f0-9]{40,}\b/gi, '[비밀값 숨김]'],                                   // 긴 16진수 키 (공공데이터포털 등)
+];
+function redactSecrets(s) {
+  return SECRET_PATTERNS.reduce((acc, [re, to]) => acc.replace(re, to), String(s));
+}
+
 function aiContext() {
   const now = new Date();
   const lines = [`현재 시각: ${now.getFullYear()}년 ${now.getMonth() + 1}월 ${now.getDate()}일 ${DOW[now.getDay()]}요일 ${pad(now.getHours())}:${pad(now.getMinutes())}`];
@@ -447,10 +462,10 @@ function aiContext() {
   }
   const todos = config.todos.filter((t) => !t.done);
   if (todos.length) lines.push(`남은 할 일: ${todos.map((t) => (t.date ? `${t.text}(${t.date}까지)` : t.text)).join(', ')}`);
-  const recentMemos = [...(config.memos || [])].sort((x, y) => y.updatedAt - x.updatedAt).slice(0, 5);
+  const recentMemos = config.ai.shareMemos === false ? [] : [...(config.memos || [])].sort((x, y) => y.updatedAt - x.updatedAt).slice(0, 5);
   if (recentMemos.length) {
     lines.push('최근 메모:');
-    for (const m of recentMemos) lines.push(`- [${m.title || '제목 없음'}] ${String(m.body || '').replace(/\s+/g, ' ').slice(0, 200)}`);
+    for (const m of recentMemos) lines.push(`- [${redactSecrets(m.title || '제목 없음')}] ${redactSecrets(String(m.body || '').replace(/\s+/g, ' ').slice(0, 200))}`);
   }
   lines.push(`구글 캘린더 쓰기 연결: ${typeof gcalState !== 'undefined' && gcalState.connected ? '됨' : '안 됨 (등록 카드를 누르면 입력 화면이 열림)'}`);
   return lines.join('\n');
@@ -743,6 +758,7 @@ function fillSettings() {
   $('#set-holidays').checked = config.calendar.koreanHolidays;
   $('#set-effort').value = config.ai.effort;
   $('#set-websearch').checked = config.ai.webSearch;
+  $('#set-share-memos').checked = config.ai.shareMemos !== false;
   renderAccounts();
   // 입력 중에는 덮어쓰지 않는다
   if (!['set-persona', 'set-about', 'set-rules'].includes(document.activeElement?.id)) fillPersona();
@@ -807,6 +823,7 @@ $('#set-sections').addEventListener('change', (e) => {
 $('#set-holidays').addEventListener('change', (e) => patchConfig({ calendar: { koreanHolidays: e.target.checked } }).then(() => loadCalendar(true)));
 $('#set-effort').addEventListener('change', (e) => patchConfig({ ai: { effort: e.target.value } }));
 $('#set-websearch').addEventListener('change', (e) => patchConfig({ ai: { webSearch: e.target.checked } }));
+$('#set-share-memos').addEventListener('change', (e) => patchConfig({ ai: { shareMemos: e.target.checked } }));
 
 $('#save-kma-key').addEventListener('click', async () => {
   const v = $('#set-kma-key').value.trim();
@@ -858,11 +875,14 @@ widget.onConfigChanged((c) => {
   tickClock();
 });
 
-(async function init() {
+// 모든 스크립트(schedule.js, memos.js, layout.js …)가 로드된 뒤에 시작한다.
+// (await 사이에 다음 <script> 보다 먼저 이어서 실행될 수 있기 때문)
+async function init() {
   config = await widget.getConfig();
   applyAppearance();
   tickClock();
   renderTodos();
+  renderMemos();
   renderCalendar();
   loadWeather();
   loadCalendar();
@@ -871,4 +891,6 @@ widget.onConfigChanged((c) => {
   setInterval(tickClock, 1000);
   setInterval(() => loadWeather(), 10 * 60e3);
   setInterval(() => loadCalendar(true), 15 * 60e3);
-})();
+}
+
+document.addEventListener('DOMContentLoaded', init);
