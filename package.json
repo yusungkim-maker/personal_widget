@@ -5,7 +5,7 @@
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
-    "test": "node --test test/llm.test.js test/nlparse.test.js test/gcal.test.js test/air.test.js",
+    "test": "node --test test/llm.test.js test/nlparse.test.js test/gcal.test.js test/air.test.js test/flex.test.js",
     "dist": "electron-builder --win nsis"
   },
   "author": "yusungkim",

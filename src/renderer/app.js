@@ -456,6 +456,8 @@ function aiContext() {
     lines.push(`날씨(${p.name}): 현재 ${c.temp}° ${c.desc}, 습도 ${c.humidity}% / ${d}`);
   }
   lines.push(...airContextLines());
+  const workLine = workContextLine();
+  if (workLine) lines.push(workLine);
   const today = ymd(now);
   const since = ymd(new Date(Date.now() - 3 * 864e5));
   const until = ymd(new Date(Date.now() + 14 * 864e5));
@@ -791,6 +793,7 @@ function fillSettings() {
   $('#set-ical').value = config.calendar.icalUrls.join('\n');
   $('#set-holidays').checked = config.calendar.koreanHolidays;
   fillNotifySettings();
+  fillWorkSettings();
   refreshBackup();
   renderAirSettings();
   fillBriefSettings();
@@ -930,6 +933,7 @@ async function init() {
   loadAiStatus();
   renderAiProfile();
   restoreChat();
+  renderWork();
   setInterval(tickClock, 1000);
   setInterval(() => loadWeather(), 10 * 60e3);
   setInterval(() => loadCalendar(true), 15 * 60e3);

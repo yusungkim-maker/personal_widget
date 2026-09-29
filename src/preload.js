@@ -62,5 +62,13 @@ contextBridge.exposeInMainWorld('widget', {
     chooseExtra: () => ipcRenderer.invoke('backup:choose-extra'),
     clearExtra: () => ipcRenderer.invoke('backup:clear-extra'),
   },
+  flex: {
+    status: () => ipcRenderer.invoke('flex:status'),
+    fetch: () => ipcRenderer.invoke('flex:fetch'),
+    login: () => ipcRenderer.invoke('flex:login'),
+    disconnect: () => ipcRenderer.invoke('flex:disconnect'),
+    setEnabled: (on) => ipcRenderer.invoke('flex:set-enabled', on),
+    onChanged: (fn) => ipcRenderer.on('flex-changed', (_e, w) => fn(w)),
+  },
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
 });

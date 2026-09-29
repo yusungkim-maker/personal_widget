@@ -9,6 +9,7 @@ const memos = require('./memos');
 const quick = require('./quick');
 const air = require('./air');
 const backup = require('./backup');
+const flex = require('./flex');
 const weather = require('./weather');
 
 const BASE_WIDTH = 340;
@@ -362,6 +363,7 @@ app.whenReady().then(() => {
   if (app.isPackaged && store.get().autoStart) applyAutoStart(true);
   memos.register(() => win);
   quick.register(() => win);
+  flex.register(() => win?.webContents.send('flex-changed', store.get().work || {}));
   // 백업에서 되돌리면 모든 창을 새로 불러 새 설정을 반영한다
   backup.register(() => win, () => {
     for (const w of BrowserWindow.getAllWindows()) w.webContents.reload();

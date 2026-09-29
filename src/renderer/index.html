@@ -25,6 +25,7 @@
         </div>
         <div class="time"><span id="time"></span><span id="ampm"></span><span id="secs" class="muted"></span></div>
         <div id="date" class="date"></div>
+        <div id="work-line" class="work-line" hidden></div>
       </section>
 
       <!-- 컴팩트 모드: 오늘 한눈에 -->
@@ -189,6 +190,18 @@
         </div>
 
         <div class="group">
+          <h3>flex 근무 시간</h3>
+          <label class="check"><input type="checkbox" id="set-work"> 시계 아래에 오늘 근무 시간 보여 주기</label>
+          <p class="hint" id="work-state"></p>
+          <div class="key-row wrap">
+            <button class="btn ghost" id="flex-login">flex 로그인</button>
+            <button class="btn ghost" id="flex-fetch">지금 불러오기</button>
+            <button class="btn ghost" id="flex-disconnect">로그인 정보 지우기</button>
+          </div>
+          <p class="hint">그날 처음 인터넷 브라우저가 켜지면 한 번, 숨긴 창에서 flex 화면의 "근무 중 ○시간 ○분"을 읽고, 그 뒤로는 지금 시각과 대조해 계산해요. 비밀번호는 위젯이 보지 않아요. flex 공식 기능이 아니라 화면이 바뀌면 읽지 못할 수 있어요.</p>
+        </div>
+
+        <div class="group">
           <h3>아침 브리핑</h3>
           <label class="check"><input type="checkbox" id="set-brief"> 매일 뭉치가 오늘 날씨·일정·할 일을 먼저 요약해 주기
             <input type="time" id="set-brief-time" class="field inline-select" step="300"></label>
@@ -350,5 +363,6 @@
   <script src="notify.js"></script>
   <script src="brief.js"></script>
   <script src="backup-ui.js"></script>
+  <script src="work.js"></script>
 </body>
 </html>
