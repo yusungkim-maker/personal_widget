@@ -122,7 +122,7 @@ function renderToday() {
     html += '<div class="tl-h">할 일</div>';
     html += todos.map((t) => `<div class="ev todo-ev" data-tid="${t.id}"><span class="bar"></span>
       <span class="t"><button class="mini-chk" data-act="toggle" title="완료"></button>${t.date < today ? '<span class="warn">지남</span>' : '오늘'}</span>
-      <span class="ti">${esc(t.text)}</span></div>`).join('');
+      <span class="ti">${esc(t.text)}</span>${t.url ? `<button class="lk icon" data-act="open-link" title="${esc(t.url)}">${ICON_LINK}</button>` : ''}</div>`).join('');
   }
   const next = nextEvent();
   if (next && next.startDay !== today) html += `<div class="tl-h">다음 일정</div><div class="ev"><span class="bar"></span><span class="t">${eventShort(next).replace(/<b>|<\/b>/g, '').split(' ').slice(0, 2).join(' ')}</span><span class="ti">${esc(next.title)}</span></div>`;
@@ -132,6 +132,7 @@ function renderToday() {
 $('#today-list').addEventListener('click', (e) => {
   const tid = e.target.closest('[data-tid]')?.dataset.tid;
   if (tid && e.target.closest('[data-act="toggle"]')) toggleTodo(tid);
+  if (tid && e.target.closest('[data-act="open-link"]')) openLink(config.todos.find((t) => t.id === tid)?.url);
 });
 
 // ── 기존 렌더 함수 감싸기 ──

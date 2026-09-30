@@ -21,6 +21,9 @@ let tray = null;
 let bottomTimer = null;
 let contentHeight = 600;
 
+// 개발용 캡처: 실제 위젯과 겹치지 않게 별도 데이터 폴더를 쓴다 (설치본에서는 무시)
+if (!app.isPackaged && process.env.WIDGET_USERDATA) app.setPath('userData', process.env.WIDGET_USERDATA);
+
 const { log, install: installLog } = require('./log');
 installLog();
 
@@ -379,7 +382,7 @@ ipcMain.handle('window:show-widget', () => { win?.show(); win?.focus(); });
 ipcMain.handle('window:close-self', (e) => BrowserWindow.fromWebContents(e.sender)?.close());
 
 ipcMain.handle('open-external', (_e, url) => {
-  if (typeof url === 'string' && url.startsWith('https://')) shell.openExternal(url);
+  if (typeof url === 'string' && /^https?:\/\//i.test(url)) shell.openExternal(url);
 });
 
 // ───────────────────────── 시작 ─────────────────────────

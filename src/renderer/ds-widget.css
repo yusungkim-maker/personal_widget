@@ -219,3 +219,23 @@
 .cal-legend i.f { background: var(--cat-flex); }
 .cal-legend i.h { background: var(--cat-holiday); }
 .cal-legend i.t { background: transparent; border-color: var(--cat-todo); }
+
+/* 할 일 링크: 제목 옆 칩, 누르면 브라우저로 */
+.todo .txt { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; }
+.lk { display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 7px; border-radius: var(--radius-sm); background: var(--info-soft); color: var(--info); font-size: 10.5px; font-weight: 600; line-height: 1; white-space: nowrap; max-width: 150px; }
+.lk span { overflow: hidden; text-overflow: ellipsis; }
+.lk svg { width: 11px; height: 11px; flex: none; }
+.lk:hover { filter: brightness(1.15); }
+.lk.icon { width: 22px; padding: 0; justify-content: center; flex: none; }
+.todo.done .lk { opacity: .55; }
+.todo .lk-edit svg { width: 12px; height: 12px; }
+.todo .lk-edit:hover { color: var(--info) !important; }
+.todo.editing .lk-edit, .todo.editing .due { display: none; }
+.lk-input { flex: 1; min-width: 0; height: 26px; padding: 0 8px; border-radius: var(--radius-sm); border: 1px solid var(--line-strong); background: var(--surface-inset); color: var(--ink); font: inherit; font-size: 12px; outline: none; }
+.lk-input:focus { border-color: var(--accent); box-shadow: var(--shadow-focus); }
+/* 줄 동작(링크·삭제)은 폭을 차지하지 않고, 올렸을 때 오른쪽에 겹쳐 뜬다 */
+.todo { position: relative; }
+.todo .row-acts { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); display: flex; gap: 2px; padding: 2px; border-radius: var(--radius-md); background: rgb(var(--surface-rgb)); box-shadow: 0 0 0 1px var(--line); opacity: 0; pointer-events: none; transition: opacity .12s; }
+.todo:hover .row-acts, .todo:focus-within .row-acts { opacity: 1; pointer-events: auto; }
+.todo .row-acts .del { opacity: 1; width: 24px; height: 24px; display: grid; place-items: center; }
+.todo.editing .row-acts { display: none; }

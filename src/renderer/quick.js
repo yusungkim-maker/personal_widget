@@ -22,9 +22,13 @@ function split(text) {
   return { mode: null, body: text.trim() };
 }
 
+// 주소 속 숫자를 날짜로 읽지 않도록 주소는 빼고 해석한다
+const noUrl = (t) => t.replace(/https?:\/\/\S+/gi, ' ').trim();
+
 function detect(body) {
   if (!body) return 'event';
-  const r = NL.parse(body);
+  if (/https?:\/\//i.test(body) && !/[0-9]+시|까지|내일|모레|요일/.test(noUrl(body))) return 'todo';
+  const r = NL.parse(noUrl(body));
   if (/까지/.test(body) && r.hasDate) return 'todo';
   if (r.hasTime || r.hasDate) return 'event';
   return 'todo';
@@ -34,7 +38,7 @@ function state() {
   const raw = $('#q-input').value;
   const { mode: prefixed, body } = split(raw);
   const mode = manualMode || prefixed || detect(body);
-  return { mode, body, parsed: NL.parse(body) };
+  return { mode, body, parsed: NL.parse(noUrl(body)) };
 }
 
 function render() {
@@ -102,8 +106,9 @@ async function submit() {
     return done(`구글 캘린더에 추가했어요 · ${NL.describe(parsed)}`);
   }
   if (mode === 'todo') {
-    const text = parsed.hasDate && parsed.title ? parsed.title : body;
-    await widget.quick.toWidget('todo', { text, date: parsed.hasDate ? parsed.startDay : null });
+    const url = (body.match(/https?:\/\/\S+/i) || [])[0] || null;
+    const text = parsed.hasDate && parsed.title ? parsed.title : noUrl(body);
+    await widget.quick.toWidget('todo', { text: text || body, date: parsed.hasDate ? parsed.startDay : null, url });
     return done('할 일에 추가했어요');
   }
   if (mode === 'memo') {

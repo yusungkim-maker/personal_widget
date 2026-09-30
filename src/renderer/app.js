@@ -292,7 +292,7 @@ function renderEvents() {
   let html = `<div class="ev-group"><p class="sec-label">${isToday ? `오늘 · ${dayLabel(day).replace(' · 오늘', '')}` : dayLabel(day)}</p><div class="ev-group today-panel">`;
   html += list.length || dayTodos.length ? list.map((e) => evHtml(e, day)).join('') : '<div class="ev-empty">일정이 없어요. 날짜를 두 번 누르면 바로 추가할 수 있어요.</div>';
   html += dayTodos.map((t) => `<div class="ev todo-ev ${t.done ? 'done' : ''}" data-tid="${t.id}">
-      <span class="bar"></span><span class="t"><button class="mini-chk" data-act="toggle" title="${t.done ? '완료 취소' : '완료'}"></button></span><span class="ti">${esc(t.text)}</span>${!t.done && t.date === ymd(new Date()) ? '<span class="chip warn">오늘</span>' : ''}</div>`).join('');
+      <span class="bar"></span><span class="t"><button class="mini-chk" data-act="toggle" title="${t.done ? '완료 취소' : '완료'}"></button></span><span class="ti">${esc(t.text)}</span>${t.url ? `<button class="lk icon" data-act="open-link" title="${esc(t.url)}">${ICON_LINK}</button>` : ''}${!t.done && t.date === ymd(new Date()) ? '<span class="chip warn">오늘</span>' : ''}</div>`).join('');
   html += '</div></div>';
 
   // 오늘을 보고 있으면 앞으로 7일간의 일정도 보여 준다
@@ -370,6 +370,50 @@ $('#cal-grid').addEventListener('click', (e) => {
 
 // ───────────────────────── 할 일 ─────────────────────────
 
+// ── 할 일 링크 ──
+const URL_RE = /\bhttps?:\/\/[^\s<>"']+/i;
+const ICON_LINK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/></svg>';
+
+// 문장에서 주소를 떼어 낸다: "기획서 검토 https://docs..." → { text: '기획서 검토', url }
+function splitLink(text) {
+  const m = String(text || '').match(URL_RE);
+  if (!m) return { text: String(text || '').trim(), url: null };
+  const url = cleanUrl(m[0]);
+  // 주소를 바로 감싸던 괄호와 뒤에 붙은 문장부호만 같이 뺀다
+  const s = String(text), at = m.index, end = at + m[0].length;
+  const open = /[(\[<]\s*$/.exec(s.slice(0, at));
+  const close = open ? /^\s*[)\]>]?[.,;]?/.exec(s.slice(end)) : /^[.,;]?/.exec(s.slice(end));
+  const rest = (s.slice(0, open ? at - open[0].length : at) + ' ' + s.slice(end + close[0].length)).replace(/\s+([.,;])/g, '$1').replace(/\s{2,}/g, ' ').trim();
+  return { text: rest || linkLabel(url), url };
+}
+
+// 끝에 붙은 문장부호는 빼고, http(s) 만 받는다
+function cleanUrl(u) {
+  if (!u) return null;
+  let s = String(u).trim().replace(/[)\].,;!?·]+$/, '');
+  if (!/^https?:\/\//i.test(s) && /^[\w-]+(\.[\w-]+)+(\/|$)/.test(s)) s = `https://${s}`;
+  try { const x = new URL(s); return /^https?:$/.test(x.protocol) ? x.href : null; } catch { return null; }
+}
+
+// 링크 칩 이름: 자주 쓰는 문서 서비스는 종류로, 나머지는 도메인으로
+function linkLabel(url) {
+  let h, p;
+  try { const x = new URL(url); h = x.hostname.replace(/^www\./, ''); p = x.pathname; } catch { return '링크'; }
+  if (h === 'docs.google.com') {
+    if (p.startsWith('/spreadsheets')) return 'Google 시트';
+    if (p.startsWith('/presentation')) return 'Google 슬라이드';
+    if (p.startsWith('/forms')) return 'Google 설문';
+    return 'Google 문서';
+  }
+  const known = { 'drive.google.com': 'Google 드라이브', 'notion.so': 'Notion', 'notion.site': 'Notion', 'figma.com': 'Figma', 'github.com': 'GitHub', 'slack.com': 'Slack', 'miro.com': 'Miro', 'dropbox.com': 'Dropbox', 'onedrive.live.com': 'OneDrive', 'sharepoint.com': 'SharePoint', 'flex.team': 'flex' };
+  for (const [k, v] of Object.entries(known)) if (h === k || h.endsWith(`.${k}`)) return v;
+  return h;
+}
+
+function openLink(url) {
+  if (url) widget.openExternal(url);
+}
+
 // 날짜 배지: 오늘 / 내일 / 10/2 (금) / 지남
 function todoBadge(t) {
   if (!t.date) return '';
@@ -392,9 +436,9 @@ function renderTodos() {
   $('#todo-list').innerHTML = todos.length
     ? order.map(({ t }) => `<li class="todo ${t.done ? 'done' : ''}" data-id="${t.id}">
         <button class="chk ${t.date ? 'dated' : ''}" data-act="toggle" title="완료"></button>
-        <span class="txt">${esc(t.text)}</span>
+        <span class="txt">${esc(t.text)}${t.url ? `<button class="lk" data-act="open" title="${esc(t.url)}">${ICON_LINK}<span>${esc(linkLabel(t.url))}</span></button>` : ''}</span>
         ${todoBadge(t)}
-        <button class="del" data-act="del" title="삭제">✕</button></li>`).join('')
+        <span class="row-acts"><button class="del lk-edit" data-act="link" title="${t.url ? '링크 바꾸기' : '링크 달기'}">${ICON_LINK}</button><button class="del" data-act="del" title="삭제">✕</button></span></li>`).join('')
     : '<li class="todo-empty">할 일이 없어요. 여유로운 하루!</li>';
 }
 
@@ -416,7 +460,36 @@ $('#todo-list').addEventListener('click', (e) => {
   if (act === 'toggle') toggleTodo(id);
   if (act === 'del') saveTodos(config.todos.filter((t) => t.id !== id));
   if (act === 'date') pickTodoDate(id, e.target.closest('[data-act]'));
+  if (act === 'open') openLink(config.todos.find((t) => t.id === id)?.url);
+  if (act === 'link') editTodoLink(id);
 });
+
+// 줄 안에서 바로 링크 넣기: Enter 저장, 비우고 Enter 는 링크 빼기, Esc 취소
+function editTodoLink(id) {
+  const li = $(`#todo-list [data-id="${id}"]`);
+  const t = config.todos.find((x) => x.id === id);
+  if (!li || !t) return;
+  li.classList.add('editing');
+  li.querySelector('.txt').innerHTML = `<input class="lk-input" type="text" placeholder="문서 주소 붙여넣기 (비우면 링크 빼기)" value="${esc(t.url || '')}">`;
+  const input = li.querySelector('.lk-input');
+  input.focus();
+  input.select();
+  let finished = false;
+  const finish = (save) => {
+    if (finished) return;
+    finished = true;
+    if (!save) return renderTodos();
+    const v = input.value.trim();
+    const url = v ? cleanUrl(v) : null;
+    if (v && !url) { toast('http 또는 https 주소만 넣을 수 있어요', null, 'err'); return renderTodos(); }
+    saveTodos(config.todos.map((x) => (x.id === id ? { ...x, url } : x)));
+  };
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+    if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+  });
+  input.addEventListener('blur', () => finish(true));
+}
 $('#todo-clear').addEventListener('click', () => saveTodos(config.todos.filter((t) => !t.done)));
 
 // ───────────────────────── AI 비서 ─────────────────────────
@@ -516,7 +589,7 @@ function aiContext() {
   const todos = config.todos.filter((t) => !t.done);
   if (todos.length) {
     lines.push('남은 할 일:');
-    for (const t of todos.slice(0, 40)) lines.push(`- [id:${t.id}] ${t.text}${t.date ? ` (${t.date}까지)` : ''}`);
+    for (const t of todos.slice(0, 40)) lines.push(`- [id:${t.id}] ${t.text}${t.date ? ` (${t.date}까지)` : ''}${t.url ? ` [링크: ${linkLabel(t.url)}]` : ''}`);
   }
   const recentMemos = config.ai.shareMemos === false ? [] : [...(config.memos || [])].sort((x, y) => y.updatedAt - x.updatedAt).slice(0, 5);
   if (recentMemos.length) {

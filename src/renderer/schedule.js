@@ -27,7 +27,7 @@ async function connectGoogle() {
   await // ───────────────────────── 빠른 입력(전역 단축키)에서 넘어온 작업 ─────────────────────────
 
 widget.quick.onAction((kind, payload) => {
-  if (kind === 'todo') addTodo(payload.text, payload.date);
+  if (kind === 'todo') addTodo(payload.text, payload.date, payload.url);
   if (kind === 'refresh-calendar') loadCalendar(true);
   const reveal = (card) => {
     // 컴팩트 모드거나 접혀 있으면 펼쳐서 보여 준다
@@ -203,6 +203,7 @@ $('#cal-events').addEventListener('click', (e) => {
   }
   const tid = e.target.closest('[data-tid]')?.dataset.tid;
   if (tid && e.target.closest('[data-act="toggle"]')) return toggleTodo(tid);
+  if (tid && e.target.closest('[data-act="open-link"]')) return openLink(config.todos.find((t) => t.id === tid)?.url);
   const gid = e.target.closest('[data-gid]')?.dataset.gid;
   if (gid) {
     const ev = cal.events.find((x) => x.gid === gid);
@@ -454,20 +455,24 @@ let todoDate = null;       // 📅 버튼으로 직접 고른 날짜
 let todoIgnoreParse = false;
 
 function todoDraft() {
-  const text = $('#todo-input').value.trim();
-  if (!text) return null;
+  const raw = $('#todo-input').value.trim();
+  if (!raw) return null;
+  // 주소는 먼저 떼어 낸다 (주소 속 숫자를 날짜로 읽지 않도록)
+  const { text, url } = splitLink(raw);
   const r = todoIgnoreParse ? null : NL.parse(text);
   const parsed = r && r.hasDate ? r : null;
-  return { text: parsed && parsed.title ? parsed.title : text, date: todoDate || parsed?.startDay || null, auto: !todoDate && !!parsed };
+  return { text: parsed && parsed.title ? parsed.title : text, url, date: todoDate || parsed?.startDay || null, auto: !todoDate && !!parsed };
 }
 
 function renderTodoPreview() {
   const box = $('#todo-preview');
   const d = todoDraft();
   const date = d?.date || todoDate;
-  if (!date) { box.hidden = true; return; }
-  const when = NL.describe({ startDay: date, allDay: true }).replace(' 종일', '');
-  box.innerHTML = `<div class="pv-main">${ICON_TODO}<span>${d ? `<b>${esc(d.text)}</b>` : ''}<span class="pv-when">${esc(when)}까지 · 달력에 표시돼요</span></span>
+  if (!date && !d?.url) { box.hidden = true; return; }
+  const due = date ? `${NL.describe({ startDay: date, allDay: true }).replace(' 종일', '')}까지` : '';
+  const when = d?.url ? [due, `${linkLabel(d.url)} 링크`].filter(Boolean).join(' · ') : `${due} · 달력에 표시돼요`;
+  const link = '';
+  box.innerHTML = `<div class="pv-main">${ICON_TODO}<span>${d ? `<b>${esc(d.text)}</b>` : ''}<span class="pv-when">${esc(when + link)}</span></span>
     <button class="link" id="todo-date-clear" title="날짜 빼기">✕</button></div>`;
   box.hidden = false;
   $('#todo-date-clear').onclick = () => { todoDate = null; todoIgnoreParse = true; renderTodoPreview(); $('#todo-input').focus(); };
@@ -497,15 +502,17 @@ $('#todo-form').addEventListener('submit', (e) => {
   e.preventDefault();
   const d = todoDraft();
   if (!d) return;
-  addTodo(d.text, d.date);
+  addTodo(d.text, d.date, d.url);
   $('#todo-input').value = '';
   todoDate = null;
   todoIgnoreParse = false;
   renderTodoPreview();
 });
 
-function addTodo(text, date = null) {
-  const item = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), text, done: false, date };
+function addTodo(text, date = null, url = null) {
+  // 문장에 주소가 섞여 들어와도(빠른 입력·뭉치) 링크로 분리해 둔다
+  const s = splitLink(text);
+  const item = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), text: s.text, done: false, date, url: cleanUrl(url) || s.url };
   saveTodos([...config.todos, item]);
   return item;
 }
@@ -571,6 +578,7 @@ function validateAction(a) {
     if (a.type === 'todo_update') {
       if (typeof a.text === 'string' && a.text.trim()) patch.text = a.text.trim().slice(0, 200);
       if (a.date === null || DAY_RE.test(a.date || '')) patch.date = a.date || null;
+      if (a.url === null || cleanUrl(a.url)) patch.url = a.url ? cleanUrl(a.url) : null;
     }
     return { type: a.type, id, before: t, patch };
   }
@@ -583,7 +591,7 @@ function validateAction(a) {
   if (a.type === 'todo') {
     const text = String(a.text || '').trim().slice(0, 200);
     if (!text) return null;
-    return { type: 'todo', text, date: DAY_RE.test(a.date || '') ? a.date : null };
+    return { type: 'todo', text, date: DAY_RE.test(a.date || '') ? a.date : null, url: cleanUrl(a.url) };
   }
   return null;
 }
@@ -635,6 +643,7 @@ function actionCardHtml(a, i) {
     const d = [];
     if (a.patch.text && a.patch.text !== a.before.text) d.push(`“${a.before.text}” → “${a.patch.text}”`);
     if ('date' in a.patch && a.patch.date !== (a.before.date || null)) d.push(`${TODO_WHEN(a.before.date)} → ${TODO_WHEN(a.patch.date)}`);
+    if ('url' in a.patch && a.patch.url !== (a.before.url || null)) d.push(a.patch.url ? `링크 → ${linkLabel(a.patch.url)}` : '링크 빼기');
     return card(ICON_TODO, 'todo', `할 일 변경 · ${esc(a.before.text)}`, (d.length ? d : ['바뀌는 내용이 없어요']).map(esc).join('<br>'), '<button class="btn sm" data-do="add">변경</button>');
   }
   if (a.type === 'todo_delete') {
@@ -738,7 +747,7 @@ $('#ai-log').addEventListener('click', async (e) => {
     return;
   }
   if (a.type === 'todo' && act === 'add') {
-    const item = addTodo(a.text, a.date);
+    const item = addTodo(a.text, a.date, a.url);
     setCardDone(card, '할 일에 추가했어요', () => saveTodos(config.todos.filter((t) => t.id !== item.id)));
     return;
   }
