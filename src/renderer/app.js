@@ -152,6 +152,10 @@ async function loadWeather(force = false) {
     weatherData = config.weather.locations.map((l) => ({ ...l, ok: false, error: e.message }));
   }
   renderWeather();
+  // 로그인 직후처럼 네트워크가 아직 준비되지 않았으면 잠시 뒤 다시 시도한다 (최대 5번)
+  if (weatherData.length && weatherData.every((p) => !p.ok) && (loadWeather.retries = (loadWeather.retries || 0) + 1) <= 5) {
+    setTimeout(() => loadWeather(true), 30e3);
+  } else if (weatherData.some((p) => p.ok)) loadWeather.retries = 0;
 }
 
 $('#w-refresh').addEventListener('click', () => loadWeather(true));
@@ -292,6 +296,9 @@ async function loadCalendar(force = false) {
     const r = await widget.fetchCalendar(from.toISOString(), upto.toISOString());
     cal.events = r.events;
     cal.errors = r.errors;
+    if (r.errors.length && !r.events.length && (loadCalendar.retries = (loadCalendar.retries || 0) + 1) <= 5) {
+      setTimeout(() => loadCalendar(true), 30e3);
+    } else if (!r.errors.length) loadCalendar.retries = 0;
     cal.googleConnected = !!r.googleConnected;
     cal.loadedRange = key;
   } catch (e) {

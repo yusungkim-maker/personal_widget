@@ -21,10 +21,20 @@ let tray = null;
 let bottomTimer = null;
 let contentHeight = 600;
 
+const { log, install: installLog } = require('./log');
+installLog();
+
 if (!app.requestSingleInstanceLock()) {
-  app.quit();
+  // 자동 실행이 두 경로(레지스트리 + 시작 프로그램 폴더)로 동시에 켜질 수 있다 → 두 번째는 조용히 끝낸다
+  log('second-instance-exit', { autostart: process.argv.includes('--autostart') });
+  // app.quit() 은 비동기라 그 사이 whenReady 가 돌며 설정을 건드릴 수 있다 → 즉시 끝낸다
+  app.exit(0);
 } else {
-  app.on('second-instance', () => win?.show());
+  app.on('second-instance', (_e, argv) => {
+    log('second-instance', { autostart: argv.includes('--autostart') });
+    // 자동 실행으로 또 켜진 것이면 창을 앞으로 가져오지 않는다
+    if (!argv.includes('--autostart')) win?.show();
+  });
 }
 
 // 개발 실행은 설치판과 다른 ID 를 써서 알림·바로 가기가 서로 섞이지 않게 한다
@@ -169,13 +179,29 @@ function resizeToContent() {
   win.setBounds({ x, y, width: widthPx(), height: h });
 }
 
+// Windows 11 이 레지스트리 시작 항목을 건너뛰는 경우가 있어서, 설치판은 "시작 프로그램" 폴더 바로 가기도 함께 둔다.
+const startupShortcut = () => path.join(app.getPath('appData'), 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup', 'Yusk Widget.lnk');
+
 function applyAutoStart(on) {
   app.setLoginItemSettings({
     openAtLogin: on,
     name: APP_NAME,
     path: process.execPath,
-    args: app.isPackaged ? [] : [path.resolve(app.getAppPath())],
+    args: app.isPackaged ? ['--autostart'] : [path.resolve(app.getAppPath())],
   });
+  if (!app.isPackaged || process.platform !== 'win32') return;
+  const fs = require('fs');
+  const lnk = startupShortcut();
+  try {
+    if (on) {
+      shell.writeShortcutLink(lnk, fs.existsSync(lnk) ? 'replace' : 'create', {
+        target: process.execPath, args: '--autostart', appUserModelId: APP_ID, description: 'Yusk Widget 자동 실행',
+      });
+    } else if (fs.existsSync(lnk)) fs.unlinkSync(lnk);
+    log('autostart', { on, runKey: true, startupShortcut: on ? fs.existsSync(lnk) : false });
+  } catch (e) {
+    log('autostart-error', { message: e.message });
+  }
 }
 
 // 전국 날씨 창 (일반 창, 필요할 때만 연다)
