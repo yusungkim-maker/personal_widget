@@ -37,27 +37,54 @@ function kst(date = new Date()) {
 const ymdOf = (k) => `${k.y}${pad(k.m)}${pad(k.d)}`;
 const hoursAgo = (h) => kst(new Date(Date.now() - h * 3600e3));
 
-function ncstBase() {
-  // 매시 정시 발표, 약 40분 이후 제공
+// 발표 시각 후보를 최신 순으로 만든다. 실제로 나왔는지는 호출해 보고, 없으면 다음 후보로 넘어간다.
+// (발표 후 제공까지 걸리는 시간이 때마다 달라서, 고정된 "몇 분 뒤" 규칙보다 정확하다)
+const at = (k) => ({ base_date: ymdOf(k) });
+
+function ncstCandidates() {
+  // 초단기실황: 매시 정시 관측
   const k = kst();
-  const b = k.min >= 45 ? k : hoursAgo(1);
-  return { base_date: ymdOf(b), base_time: `${pad(b.h)}00` };
+  return [0, 1, 2].map((h) => { const b = h ? hoursAgo(h) : k; return { ...at(b), base_time: `${pad(b.h)}00` }; });
 }
 
-function ultraFcstBase() {
-  // 매시 30분 발표, 약 45분 이후 제공
+function ultraFcstCandidates() {
+  // 초단기예보: 매시 30분 발표
   const k = kst();
-  const b = k.min >= 50 ? k : hoursAgo(1);
-  return { base_date: ymdOf(b), base_time: `${pad(b.h)}30` };
+  const list = [];
+  for (let h = 0; h < 3; h++) {
+    const b = h ? hoursAgo(h) : k;
+    if (h === 0 && k.min < 30) continue;
+    list.push({ ...at(b), base_time: `${pad(b.h)}30` });
+  }
+  return list;
 }
 
-function vilageBase() {
-  // 02,05,08,11,14,17,20,23시 발표, 약 10분 이후 제공
-  const k = kst();
-  const mins = k.h * 60 + k.min;
-  const hours = [2, 5, 8, 11, 14, 17, 20, 23].filter((h) => mins >= h * 60 + 15);
-  if (!hours.length) return { base_date: ymdOf(hoursAgo(24)), base_time: '2300' };
-  return { base_date: ymdOf(k), base_time: `${pad(hours.at(-1))}00` };
+function vilageCandidates() {
+  // 단기예보: 02·05·08·11·14·17·20·23시 발표
+  const out = [];
+  for (let back = 0; out.length < 3 && back < 30; back++) {
+    const b = hoursAgo(back);
+    if ([2, 5, 8, 11, 14, 17, 20, 23].includes(b.h) && !out.some((c) => c.base_date === ymdOf(b) && c.base_time === `${pad(b.h)}00`)) {
+      out.push({ ...at(b), base_time: `${pad(b.h)}00` });
+    }
+  }
+  return out;
+}
+
+async function callLatest(op, key, candidates, loc) {
+  let lastErr = null;
+  for (const c of candidates) {
+    try {
+      const items = await call(op, key, { ...c, ...loc });
+      if (items.length) return { items, base: c };
+    } catch (e) {
+      // 인증 오류는 다른 발표 시각으로 바꿔도 소용없다
+      if (/인증키/.test(e.message)) throw e;
+      lastErr = e;
+    }
+  }
+  if (lastErr) throw lastErr;
+  return { items: [], base: null };
 }
 
 // 오늘 최저/최고기온(TMN/TMX)은 02시 발표분에 모두 들어 있다.
@@ -118,12 +145,16 @@ async function fetchWeather({ key, latitude, longitude, hours = 24 }) {
   const grid = toGrid(latitude, longitude);
   const loc = { nx: String(grid.nx), ny: String(grid.ny) };
 
-  const [ncst, ultra, vilage, mm] = await Promise.all([
-    call('getUltraSrtNcst', key, { ...ncstBase(), ...loc }),
-    call('getUltraSrtFcst', key, { ...ultraFcstBase(), ...loc }).catch(() => []),
-    call('getVilageFcst', key, { ...vilageBase(), ...loc }),
+  const [ncstR, ultraR, vilageR, mm] = await Promise.all([
+    callLatest('getUltraSrtNcst', key, ncstCandidates(), loc),
+    callLatest('getUltraSrtFcst', key, ultraFcstCandidates(), loc).catch(() => ({ items: [] })),
+    callLatest('getVilageFcst', key, vilageCandidates(), loc),
     call('getVilageFcst', key, { ...todayMinMaxBase(), ...loc }).catch(() => []),
   ]);
+  const ncst = ncstR.items, ultra = ultraR.items, vilage = vilageR.items;
+  // 관측 시각 (예: "2026-09-30T10:00") — 화면에 "10:00 관측"으로 보여 준다
+  const ob = ncstR.base;
+  const observedAt = ob ? `${ob.base_date.slice(0, 4)}-${ob.base_date.slice(4, 6)}-${ob.base_date.slice(6)}T${ob.base_time.slice(0, 2)}:${ob.base_time.slice(2)}` : null;
 
   // 현재
   const now = Object.fromEntries(ncst.map((i) => [i.category, i.obsrValue]));
@@ -186,7 +217,7 @@ async function fetchWeather({ key, latitude, longitude, hours = 24 }) {
     if (daily[0].max == null || t > daily[0].max) daily[0].max = t;
     if (daily[0].min == null || t < daily[0].min) daily[0].min = t;
   }
-  return { current, hourly: nextHours, daily, grid, updatedAt: new Date().toISOString() };
+  return { current, hourly: nextHours, daily, grid, observedAt, updatedAt: new Date().toISOString() };
 }
 
 // 지역 이름 → 위경도 (OpenStreetMap Nominatim, 한국 지명 검색이 정확하다)
@@ -214,8 +245,8 @@ async function searchCity(name) {
   });
 }
 
-// ── 캐시 (같은 격자는 20분 동안 다시 부르지 않는다) ──
-const CACHE_MS = 20 * 60e3;
+// ── 캐시 (같은 격자는 10분 동안 다시 부르지 않는다) ──
+const CACHE_MS = 10 * 60e3; // 정시 관측이 나오면 10분 안에 반영되도록
 const cache = new Map();
 
 function cachedWeather(key, place, force = false) {

@@ -138,8 +138,11 @@ function renderWeather() {
       <span class="h-p">${h.pop >= 30 ? `${h.pop}%` : ''}</span>
     </div>`).join('') : '';
 
+  // 가져온 시각이 아니라 기상청 관측 시각을 보여 준다 (초단기실황은 정시마다 한 번 관측)
   const at = first ? new Date(first.data.updatedAt) : null;
-  $('#w-updated').textContent = at ? `기상청 단기예보 · ${pad(at.getHours())}:${pad(at.getMinutes())} 갱신` : '';
+  const obs = first?.data.observedAt ? first.data.observedAt.slice(11, 16) : null;
+  $('#w-updated').textContent = at ? `기상청 ${obs ? `${obs} 관측` : '실황'} · ${pad(at.getHours())}:${pad(at.getMinutes())} 확인` : '';
+  $('#w-updated').title = '기상청 초단기실황(정시 관측, 5km 격자 값)입니다. 포털 날씨는 다른 업체 자료나 더 짧은 간격의 관측값을 써서 조금 다를 수 있어요.';
 }
 
 async function loadWeather(force = false) {
