@@ -162,7 +162,8 @@ function applyWindowSettings() {
   const w = cfg().window;
   applyMode(w.mode);
   win.setOpacity(Math.min(1, Math.max(0.2, w.opacity)));
-  win.setMovable(!w.locked);
+  // 바탕화면에 고정하면 위치도 고정 (옮기려면 일반 창/항상 위로 바꿔서)
+  win.setMovable(!(w.locked || w.mode === 'desktop'));
   win.setIgnoreMouseEvents(!!w.clickThrough, { forward: true });
   win.webContents.setZoomFactor(w.zoom);
   resizeToContent();
@@ -275,7 +276,7 @@ function refreshTray() {
       label: '컴팩트 모드 (시계와 오늘만)', type: 'checkbox', checked: !!cfg().appearance.compact,
       click: (i) => { store.update({ appearance: { compact: i.checked } }); broadcastConfig(); },
     },
-    { label: '위치 잠금', type: 'checkbox', checked: w.locked, click: (i) => setWindow({ locked: i.checked }) },
+    { label: w.mode === 'desktop' ? '위치 잠금 (바탕화면 고정 중)' : '위치 잠금', type: 'checkbox', checked: w.locked || w.mode === 'desktop', enabled: w.mode !== 'desktop', click: (i) => setWindow({ locked: i.checked }) },
     { label: '클릭 통과 (마우스 무시)', type: 'checkbox', checked: w.clickThrough, click: (i) => setWindow({ clickThrough: i.checked }) },
     { label: '위치 초기화', click: () => { const p = defaultPosition(widthPx()); win.setPosition(p.x, p.y); store.update({ window: p }); } },
     { type: 'separator' },

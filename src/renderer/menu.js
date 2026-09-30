@@ -45,7 +45,7 @@ $('#btn-clock-menu').addEventListener('click', (e) => {
   const setMode = (m) => patchConfig({ window: { mode: m } });
   openMenu(e.currentTarget, [
     { heading: '창 모드' },
-    { label: '바탕화면에 고정', checked: mode === 'desktop', onClick: () => setMode('desktop') },
+    { label: '바탕화면에 고정', hint: '위치 잠김', checked: mode === 'desktop', onClick: () => setMode('desktop') },
     { label: '일반 창', checked: mode === 'normal', onClick: () => setMode('normal') },
     { label: '항상 위에 표시', checked: mode === 'top', onClick: () => setMode('top') },
     { sep: true },
