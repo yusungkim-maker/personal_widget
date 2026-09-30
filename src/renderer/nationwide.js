@@ -54,7 +54,7 @@ function chipValue(p) {
   switch (metric) {
     case 'max': return { icon: today.icon, text: fmt(today.max), cls: tempClass(today.max) };
     case 'min': return { icon: today.icon, text: fmt(today.min), cls: tempClass(today.min) };
-    case 'pop': return { icon: today.icon, text: `${today.pop ?? 0}%`, cls: today.pop >= 50 ? 'wet' : '' };
+    case 'pop': return { icon: today.icon, text: `${today.pop ?? 0}%`, cls: today.pop >= 50 ? 'wet' : '' }; // 오늘 남은 시간 최대
     case 'tomorrow': return { icon: tmr.icon, text: `${fmt(tmr.max)}<span class="muted" style="font-weight:400;font-size:11px"> / ${fmt(tmr.min)}</span>`, cls: tempClass(tmr.max) };
     default: return { icon: d.current.icon, text: fmt(d.current.temp), cls: tempClass(d.current.temp) };
   }
@@ -208,7 +208,7 @@ function renderDetail() {
       <div class="stat"><div class="k">습도</div><div class="val">${c.humidity}%</div></div>
       <div class="stat"><div class="k">바람</div><div class="val">${c.wind}<small>m/s</small></div></div>
       <div class="stat"><div class="k">1시간 강수</div><div class="val">${c.rain1h}<small>mm</small></div></div>
-      <div class="stat"><div class="k">강수확률</div><div class="val">${t.pop ?? 0}%</div></div>
+      <div class="stat" title="지금 시각 / 오늘 남은 시간 중 최대"><div class="k">강수확률</div><div class="val">${c.pop ?? '-'}%<small>${t.pop > (c.pop ?? 0) ? ` · ${t.popHour}시 ${t.pop}%` : ''}</small></div></div>
     </div>
     ${rainSum.length ? `<div class="d-sub">☔ 24시간 안에 강수 예보가 있어요: ${esc(rainSum.slice(0, 3).join(', '))}</div>` : ''}
     <div class="d-sec">24시간 기온 · 강수확률</div>

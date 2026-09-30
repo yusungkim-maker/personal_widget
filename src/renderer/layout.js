@@ -62,10 +62,12 @@ function renderSummaries() {
   if (!config) return;
   // 날씨
   const w = weatherData.filter((p) => p.ok);
-  const rain = w.map((p) => p.data.daily[0]?.pop || 0).reduce((a, b) => Math.max(a, b), 0);
+  // 오늘 남은 시간 중 가장 높은 강수확률과 그 시각
+  const peak = w.map((p) => p.data.daily[0] || {}).reduce((a, b) => ((b.pop || 0) > (a.pop || 0) ? b : a), {});
+  const rain = peak.pop || 0;
   $('#sum-weather').innerHTML = w.length
     ? w.map((p) => `${esc(p.name)} <b>${fmtT(p.data.current.temp)}</b> ${esc(p.data.current.desc)}`).join(sep)
-      + (rain >= 60 ? `${sep}<span class="warn">☂ 비 ${rain}%</span>` : '')
+      + (rain >= 60 ? `${sep}<span class="warn">☂ ${peak.popHour != null ? `${hourLabel(peak.popHour)} ` : ''}비 ${rain}%</span>` : '')
       + ((typeof airData !== 'undefined' && airData.some((a) => a.grade >= 2)) ? `${sep}<span class="warn">미세먼지 나쁨</span>` : '')
       + ((typeof warnData !== 'undefined' && warnData.warnings?.length) ? `${sep}<span class="warn">⚠ ${esc(warnData.warnings[0].names[0])}</span>` : '')
     : '날씨를 불러오는 중…';
@@ -104,7 +106,7 @@ function renderToday() {
   $('#today-weather').innerHTML = w.length ? w.map((p) => {
     const c = p.data.current, t = p.data.daily[0] || {};
     return `<div class="tw-row">${weatherIcon(c.icon, 22)}<span class="nm">${esc(p.name)}</span><span class="tp">${fmtT(c.temp)}</span>
-      <span class="mm"><span class="hi">${fmtT(t.max)}</span>/<span class="lo">${fmtT(t.min)}</span> <span class="pop">☂${t.pop ?? 0}%</span></span>
+      <span class="mm"><span class="hi">${fmtT(t.max)}</span>/<span class="lo">${fmtT(t.min)}</span> ${popNow(p)} ${popPeak(p)}</span>
       <span class="dust" data-dust="${esc(p.name)}"></span></div>`;
   }).join('') : '<div class="tl-empty">날씨를 불러오는 중…</div>';
 

@@ -30,7 +30,7 @@ function toGrid(lat, lon) {
 
 // ── 발표 시각 계산 (항상 한국 시간 기준) ──
 const pad = (n) => String(n).padStart(2, '0');
-function kst(date = new Date()) {
+function kst(date = new Date(Date.now())) {
   const d = new Date(date.getTime() + 9 * 3600e3);
   return { y: d.getUTCFullYear(), m: d.getUTCMonth() + 1, d: d.getUTCDate(), h: d.getUTCHours(), min: d.getUTCMinutes(), t: date.getTime() };
 }
@@ -186,30 +186,39 @@ async function fetchWeather({ key, latitude, longitude, hours = 24 }) {
   }));
 
   // 일별 (오늘/내일/모레)
-  const all = [...group(mm, 'fcstValue'), ...hourly];
+  //  - 기온: 02시 발표(오늘 최저·최고 포함) + 최신 발표. 같은 시각이면 최신 발표가 이긴다.
+  //  - 강수확률·하늘: 최신 발표만 쓴다 (옛 발표의 높은 확률이 남지 않게), 오늘은 지금 이후 시간만.
   const byDay = {};
-  for (const s of all) {
-    const d = (byDay[s.date] ||= { temps: [], pops: [], tmn: null, tmx: null, slots: [] });
+  const day = (date) => (byDay[date] ||= { temps: [], tmn: null, tmx: null, slots: [] });
+  for (const s of [...group(mm, 'fcstValue'), ...hourly]) {
+    const d = day(s.date);
     if (s.TMP != null) d.temps.push(Number(s.TMP));
-    if (s.POP != null) d.pops.push(Number(s.POP));
     if (s.TMN != null) d.tmn = Number(s.TMN);
     if (s.TMX != null) d.tmx = Number(s.TMX);
-    d.slots.push(s);
   }
+  for (const s of hourly) if (s.date > today || s.date + s.time >= nowKey) day(s.date).slots.push(s);
   if (byDay[today] && Number.isFinite(current.temp)) byDay[today].temps.push(current.temp);
+
   const daily = Object.keys(byDay).filter((d) => d >= today).sort().slice(0, 3).map((date) => {
     const d = byDay[date];
-    // 낮 12~15시의 하늘/강수 상태를 그날의 대표로 쓴다
+    const withPop = d.slots.filter((s) => s.POP != null);
+    const peak = withPop.reduce((best, s) => (Number(s.POP) > Number(best?.POP ?? -1) ? s : best), null);
+    // 낮 12시의 하늘을 그날의 대표로, 비·눈 예보가 있으면 그것을 우선
     const noon = d.slots.find((s) => s.time === '1200' && s.SKY) || d.slots.find((s) => s.SKY) || {};
     const rainy = d.slots.find((s) => Number(s.PTY) > 0);
     return {
       date,
       min: d.tmn ?? (d.temps.length ? Math.min(...d.temps) : null),
       max: d.tmx ?? (d.temps.length ? Math.max(...d.temps) : null),
-      pop: d.pops.length ? Math.max(...d.pops) : 0,
+      pop: peak ? Number(peak.POP) : 0,               // (오늘은 남은 시간 중) 가장 높은 강수확률
+      popHour: peak ? Number(peak.time.slice(0, 2)) : null, // 그 시각
       icon: iconOf(noon.SKY, rainy ? rainy.PTY : noon.PTY),
     };
   });
+
+  // 지금 시각의 강수확률 (최신 발표에서 이번 시간, 없으면 가장 가까운 다음 시간)
+  const nowSlot = hourly.find((s) => s.date + s.time >= nowKey && s.POP != null);
+  current.pop = nowSlot ? Number(nowSlot.POP) : null;
 
   // 예보 최고·최저를 실제 현재 기온이 넘어서면 현재 기온으로 맞춘다
   if (daily[0] && Number.isFinite(current.temp)) {

@@ -95,6 +95,19 @@ $('#btn-mode').addEventListener('click', () => {
 
 let weatherData = [];
 
+// 강수확률 표시: ☂ 자리는 "지금" 값, 오늘 남은 시간 중 30% 이상이 있으면 그 시각을 따로 붙인다
+const hourLabel = (h) => (h === 0 ? '자정' : h < 12 ? `오전 ${h}시` : h === 12 ? '정오' : `오후 ${h - 12}시`);
+function popNow(p) {
+  const v = p.data.current.pop;
+  return `<span class="pop" title="지금 시각의 강수확률 (기상청 단기예보)">☂${v ?? '-'}%</span>`;
+}
+function popPeak(p) {
+  const t = p.data.daily[0] || {};
+  const now = p.data.current.pop ?? 0;
+  if (t.pop == null || t.pop < 30 || t.pop <= now || t.popHour == null) return '';
+  return `<span class="pop-peak" title="오늘 남은 시간 중 가장 높은 강수확률">${hourLabel(t.popHour)} ${t.pop}%</span>`;
+}
+
 function fmtT(v) {
   return Number.isFinite(v) ? `${Math.round(v)}°` : '-';
 }
@@ -123,7 +136,8 @@ function renderWeather() {
       </div>
       <div class="w-right">
         <div class="w-temp">${fmtT(c.temp)}</div>
-        <div class="w-mm"><span class="hi">${fmtT(t.max)}</span> / <span class="lo">${fmtT(t.min)}</span><span class="pop">☂${t.pop ?? 0}%</span></div>
+        <div class="w-mm"><span class="hi">${fmtT(t.max)}</span> / <span class="lo">${fmtT(t.min)}</span>${popNow(p)}</div>
+        ${popPeak(p) ? `<div class="w-peak">${popPeak(p)}</div>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -462,8 +476,8 @@ function aiContext() {
   const lines = [`현재 시각: ${now.getFullYear()}년 ${now.getMonth() + 1}월 ${now.getDate()}일 ${DOW[now.getDay()]}요일 ${pad(now.getHours())}:${pad(now.getMinutes())}`];
   for (const p of weatherData.filter((x) => x.ok)) {
     const c = p.data.current;
-    const d = p.data.daily.map((x) => `${x.date.slice(4, 6)}/${x.date.slice(6)} 최저 ${x.min}° 최고 ${x.max}° 강수확률 ${x.pop}%`).join(', ');
-    lines.push(`날씨(${p.name}): 현재 ${c.temp}° ${c.desc}, 습도 ${c.humidity}% / ${d}`);
+    const d = p.data.daily.map((x, i) => `${x.date.slice(4, 6)}/${x.date.slice(6)} 최저 ${x.min}° 최고 ${x.max}° ${i === 0 ? '남은 시간 최대 강수확률' : '최대 강수확률'} ${x.pop}%${x.popHour != null && x.pop > 0 ? `(${x.popHour}시)` : ''}`).join(', ');
+    lines.push(`날씨(${p.name}, 기상청 ${p.data.observedAt ? p.data.observedAt.slice(11, 16) : ''} 관측): 현재 ${c.temp}° ${c.desc}, 습도 ${c.humidity}%, 지금 강수확률 ${c.pop ?? '-'}% / ${d}`);
   }
   lines.push(...airContextLines());
   const workLine = workContextLine();
