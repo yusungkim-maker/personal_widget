@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld('widget', {
   getConfig: () => ipcRenderer.invoke('config:get'),
   updateConfig: (patch) => ipcRenderer.invoke('config:update', patch),
   setSecret: (section, value) => ipcRenderer.invoke('secret:set', section, value),
+  log: (event, detail) => ipcRenderer.send('log', event, detail),
   onConfigChanged: (fn) => ipcRenderer.on('config-changed', (_e, c) => fn(c)),
   onOpenSettings: (fn) => ipcRenderer.on('open-settings', () => fn()),
   reportHeight: (h) => ipcRenderer.send('window:content-height', h),

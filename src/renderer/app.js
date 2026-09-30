@@ -171,19 +171,29 @@ function renderWeather() {
   // 가져온 시각이 아니라 기상청 관측 시각을 보여 준다 (초단기실황은 정시마다 한 번 관측)
   const at = first ? new Date(first.data.updatedAt) : null;
   const obs = first?.data.observedAt ? first.data.observedAt.slice(11, 16) : null;
-  $('#w-updated').textContent = at ? `기상청 ${obs ? `${obs} 관측` : '실황'} · ${pad(at.getHours())}:${pad(at.getMinutes())} 확인` : '';
+  const stale = weatherData.find((p) => p.staleError);
+  $('#w-updated').textContent = at ? `기상청 ${obs ? `${obs} 관측` : '실황'} · ${pad(at.getHours())}:${pad(at.getMinutes())} 확인${stale ? ' · 새로 불러오기 실패, 마지막 값 표시 중' : ''}` : '';
   $('#w-updated').title = '기상청 초단기실황(정시 관측, 5km 격자 값)입니다. 포털 날씨는 다른 업체 자료나 더 짧은 간격의 관측값을 써서 조금 다를 수 있어요.';
 }
 
 async function loadWeather(force = false) {
   if (!config.sections.weather || !config.weather.hasKey) return renderWeather();
   renderWeather();
+  const prev = weatherData;
+  let next;
   try {
-    weatherData = await widget.weatherLocations(force);
+    next = await widget.weatherLocations(force);
     loadAir();
   } catch (e) {
-    weatherData = config.weather.locations.map((l) => ({ ...l, ok: false, error: e.message }));
+    next = config.weather.locations.map((l) => ({ ...l, ok: false, error: e.message }));
   }
+  // 실패한 지역은 마지막으로 받은 정상 값을 유지한다 (오류는 아래 줄에 작게)
+  weatherData = next.map((p) => {
+    if (p.ok) return p;
+    const old = prev.find((o) => o.ok && o.name === p.name);
+    return old ? { ...old, staleError: p.error } : p;
+  });
+  for (const p of next.filter((x) => !x.ok)) widget.log?.('weather-failed', { place: p.name, error: String(p.error).slice(0, 200) });
   renderWeather();
   // 로그인 직후처럼 네트워크가 아직 준비되지 않았으면 잠시 뒤 다시 시도한다 (최대 5번)
   if (weatherData.length && weatherData.every((p) => !p.ok) && (loadWeather.retries = (loadWeather.retries || 0) + 1) <= 5) {

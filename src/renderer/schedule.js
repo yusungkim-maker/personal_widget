@@ -848,6 +848,9 @@ function renderGcalSettings() {
     state.innerHTML = `<span class="dot ok"></span><b>${esc(s.email || '연결됨')}</b> · 위젯에서 일정을 추가·수정·삭제하면 바로 반영돼요`;
     actions.innerHTML = '<button class="btn ghost" id="gcal-disconnect">연결 해제</button>';
     $('#gcal-guide').open = false;
+  } else if (s.expired) {
+    state.innerHTML = `<span class="dot wait"></span><b>${esc(s.email || '구글 계정')}</b> · 구글이 로그인을 만료시켰어요. <b>다시 연결</b>만 누르면 돼요 (설정·키는 그대로예요)`;
+    actions.innerHTML = '<button class="btn" id="gcal-connect">다시 연결</button>';
   } else if (s.hasClient) {
     state.innerHTML = '<span class="dot"></span>준비 완료 · 구글 계정만 연결하면 돼요';
     actions.innerHTML = '<button class="btn" id="gcal-connect">구글 계정 연결</button><button class="btn ghost" id="gcal-import">JSON 다시 가져오기</button>';

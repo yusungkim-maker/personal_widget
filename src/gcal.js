@@ -62,14 +62,17 @@ function tokens() {
 }
 
 function saveTokens(t) {
-  store.setSecret('googleToken', t ? JSON.stringify(t) : '');
+  if (!t) return; // 토큰은 "연결 끊기"(disconnect) 로만 지운다
+  store.setSecret('googleToken', JSON.stringify(t));
+  if (g().expired) store.update({ google: { expired: false } });
 }
 
 function status() {
   const c = g();
   return {
     hasClient: !!c.clientId && !!clientSecret(),
-    connected: !!tokens()?.refresh_token,
+    connected: !!tokens()?.refresh_token && !c.expired,
+    expired: !!c.expired, // 구글이 로그인을 만료시킴 → 다시 연결하면 된다 (저장된 값은 그대로)
     email: c.email || '',
     connecting: !!connectJob,
   };
@@ -192,7 +195,8 @@ async function accessToken(force = false) {
     saveTokens({ ...t, access_token: r.access_token, expires_at: Date.now() + (r.expires_in - 60) * 1000 });
     return r.access_token;
   } catch (e) {
-    if (e.code === 'EXPIRED') { saveTokens(null); store.update({ google: { email: '' } }); }
+    // 만료돼도 토큰·계정은 지우지 않고 "다시 연결 필요"만 표시한다
+    if (e.code === 'EXPIRED') store.update({ google: { expired: true } });
     throw e;
   }
 }
@@ -203,8 +207,8 @@ async function disconnect() {
     // 구글 쪽 권한도 함께 철회한다 (실패해도 로컬 토큰은 지운다)
     await fetch(`${REVOKE_URL}?token=${encodeURIComponent(t.refresh_token)}`, { method: 'POST', signal: AbortSignal.timeout(10000) }).catch(() => {});
   }
-  saveTokens(null);
-  store.update({ google: { email: '' } });
+  store.clearSecret('googleToken', 'user-disconnect');
+  store.update({ google: { email: '', expired: false } });
   return status();
 }
 

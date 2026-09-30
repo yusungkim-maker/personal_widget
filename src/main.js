@@ -321,9 +321,11 @@ ipcMain.handle('config:update', (_e, patch) => {
 });
 
 ipcMain.handle('secret:set', (_e, section, value) => {
-  store.setSecret(section, (value || '').trim());
+  // 빈 값으로는 절대 지우지 않는다 (store 에서도 한 번 더 막음)
+  if (section === 'weather' && (value || '').trim()) store.setSecret(section, value.trim());
   return store.publicConfig();
 });
+ipcMain.on('log', (_e, event, detail) => { if (typeof event === 'string') log(`renderer:${event.slice(0, 40)}`, detail && typeof detail === 'object' ? detail : {}); });
 
 ipcMain.on('window:content-height', (_e, h) => {
   contentHeight = h;
@@ -388,6 +390,7 @@ ipcMain.handle('open-external', (_e, url) => {
 // ───────────────────────── 시작 ─────────────────────────
 
 app.whenReady().then(() => {
+  store.setLogger(log);
   store.load();
   ensureStartMenuShortcut();
   if (app.isPackaged && store.get().autoStart) applyAutoStart(true);

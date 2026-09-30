@@ -79,7 +79,7 @@ async function callLatest(op, key, candidates, loc) {
       if (items.length) return { items, base: c };
     } catch (e) {
       // 인증 오류는 다른 발표 시각으로 바꿔도 소용없다
-      if (/인증키/.test(e.message)) throw e;
+      if (e.keyRejected) throw e;
       lastErr = e;
     }
   }
@@ -95,7 +95,18 @@ function todayMinMaxBase() {
 }
 
 // ── 호출 ──
+// 기상청(공공데이터포털) 게이트웨이는 가끔 멀쩡한 키에도 인증 오류를 돌려준다 → 잠시 뒤 한 번 더
 async function call(op, key, params) {
+  try {
+    return await callOnce(op, key, params);
+  } catch (e) {
+    if (!e.keyRejected) throw e;
+    await new Promise((r) => setTimeout(r, 2500));
+    return callOnce(op, key, params);
+  }
+}
+
+async function callOnce(op, key, params) {
   const qs = new URLSearchParams({
     serviceKey: key, pageNo: '1', numOfRows: '1000', dataType: 'JSON', ...params,
   });
@@ -107,7 +118,11 @@ async function call(op, key, params) {
   } catch {
     // 인증 오류 등은 JSON 요청이어도 XML로 온다
     const msg = text.match(/<returnAuthMsg>([^<]+)/)?.[1] || text.match(/<resultMsg>([^<]+)/)?.[1] || `HTTP ${res.status}`;
-    if (/SERVICE_KEY|SERVICE KEY/i.test(msg)) throw new Error('기상청 인증키가 올바르지 않거나 아직 활성화되지 않았습니다.');
+    if (/SERVICE_KEY|SERVICE KEY/i.test(msg)) {
+      const err = new Error(`기상청 서버가 인증키를 받아 주지 않았어요 (${msg}). 저장된 키는 그대로예요 · 잠시 후 다시 불러와요`);
+      err.keyRejected = true;
+      throw err;
+    }
     throw new Error(`기상청 응답 오류: ${msg}`);
   }
   const header = json.response?.header;

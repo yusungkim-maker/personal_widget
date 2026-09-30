@@ -101,6 +101,7 @@ async function restore(win, reloadAll) {
 
 // 백업 내용을 실제로 적용 (적용 전 지금 상태를 따로 백업)
 function applyBackup(data) {
+  if (!data?.config || typeof data.config !== 'object') throw new Error('백업 파일에 설정이 없어요.');
   write('before-restore');
   // 비밀값이 없는 백업(외부 폴더용)이면 지금 저장된 키·토큰은 그대로 둔다
   const current = store.get();
