@@ -131,11 +131,15 @@
         </header>
         <div class="card-sum" id="sum-todo"></div>
         <form id="todo-form" class="todo-form" autocomplete="off">
-          <input id="todo-input" class="field" placeholder="할 일 추가 — 예: 금요일까지 보고서 (Enter)">
-          <button type="button" class="icon-btn" id="todo-date-btn" title="날짜 지정 (달력에 표시돼요)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></button>
+          <div class="tf-box">
+            <input id="todo-input" placeholder="할 일 추가 (Enter)">
+            <div class="tf-extra">
+              <span class="tf-date"><button type="button" id="todo-date-btn" class="tf-chip" title="마감 날짜 (달력에 표시돼요)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg><span id="todo-date-label">날짜</span></button><button type="button" id="todo-date-clear" class="tf-x" title="날짜 빼기" hidden>✕</button></span>
+              <label class="tf-link" title="관련 문서 주소"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/></svg><input id="todo-link" placeholder="링크 붙여넣기 (선택)"></label>
+            </div>
+          </div>
           <input type="date" id="todo-date" class="date-hidden" tabindex="-1">
         </form>
-        <div id="todo-preview" class="qa-preview" hidden></div>
         <input type="date" id="todo-date-edit" class="date-hidden" tabindex="-1">
         <ul id="todo-list" class="todo-list"></ul>
       </section>

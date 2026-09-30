@@ -451,31 +451,51 @@ $('#cal-grid').addEventListener('dblclick', (e) => {
 
 // ───────────────────────── 할 일 날짜 ─────────────────────────
 
-let todoDate = null;       // 📅 버튼으로 직접 고른 날짜
-let todoIgnoreParse = false;
+let todoDate = null;       // 날짜 칸에서 직접 고른 날짜
+let todoIgnoreParse = false; // ✕ 로 자동 인식 날짜를 뺐으면 다시 읽지 않는다
+let todoPicking = false;     // 날짜 선택 창이 떠 있는 동안은 접지 않는다
 
 function todoDraft() {
   const raw = $('#todo-input').value.trim();
-  if (!raw) return null;
   // 주소는 먼저 떼어 낸다 (주소 속 숫자를 날짜로 읽지 않도록)
   const { text, url } = splitLink(raw);
-  const r = todoIgnoreParse ? null : NL.parse(text);
+  const r = todoIgnoreParse || !text ? null : NL.parse(text);
   const parsed = r && r.hasDate ? r : null;
-  return { text: parsed && parsed.title ? parsed.title : text, url, date: todoDate || parsed?.startDay || null, auto: !todoDate && !!parsed };
+  const linkRaw = $('#todo-link').value.trim();
+  return {
+    text: parsed && parsed.title ? parsed.title : text,
+    url: (linkRaw && cleanUrl(linkRaw)) || url,
+    badLink: !!linkRaw && !cleanUrl(linkRaw),
+    date: todoDate || parsed?.startDay || null,
+    auto: !todoDate && !!parsed,
+  };
 }
 
-function renderTodoPreview() {
-  const box = $('#todo-preview');
+// 입력칸 아래 날짜·링크 줄: 날짜는 문장에서 읽은 값도 보여 준다
+function renderTodoExtra() {
   const d = todoDraft();
-  const date = d?.date || todoDate;
-  if (!date && !d?.url) { box.hidden = true; return; }
-  const due = date ? `${NL.describe({ startDay: date, allDay: true }).replace(' 종일', '')}까지` : '';
-  const when = d?.url ? [due, `${linkLabel(d.url)} 링크`].filter(Boolean).join(' · ') : `${due} · 달력에 표시돼요`;
-  const link = '';
-  box.innerHTML = `<div class="pv-main">${ICON_TODO}<span>${d ? `<b>${esc(d.text)}</b>` : ''}<span class="pv-when">${esc(when + link)}</span></span>
-    <button class="link" id="todo-date-clear" title="날짜 빼기">✕</button></div>`;
-  box.hidden = false;
-  $('#todo-date-clear').onclick = () => { todoDate = null; todoIgnoreParse = true; renderTodoPreview(); $('#todo-input').focus(); };
+  const label = $('#todo-date-label');
+  const btn = $('#todo-date-btn');
+  if (d.date) {
+    const [, m, dd] = d.date.split('-').map(Number);
+    label.textContent = `${m}/${dd} (${DOW[new Date(d.date + 'T00:00').getDay()]})까지`;
+    btn.title = `${NL.describe({ startDay: d.date, allDay: true }).replace(' 종일', '')}까지${d.auto ? ' (문장에서 읽었어요)' : ''} · 누르면 바꾸기`;
+  } else {
+    label.textContent = '날짜';
+    btn.title = '마감 날짜 (달력에 표시돼요)';
+  }
+  btn.classList.toggle('on', !!d.date);
+  $('#todo-date-clear').hidden = !d.date;
+  $('.tf-link').classList.toggle('on', !!d.url);
+  $('.tf-link').classList.toggle('bad', d.badLink);
+}
+
+function setTodoOpen(open) {
+  $('#todo-form').classList.toggle('open', open);
+}
+
+function todoHasDraft() {
+  return !!($('#todo-input').value.trim() || $('#todo-link').value.trim() || todoDate);
 }
 
 function openDatePicker(input, anchor, value, onPick) {
@@ -487,26 +507,68 @@ function openDatePicker(input, anchor, value, onPick) {
   try { input.showPicker(); } catch { input.focus(); }
 }
 
+$('#todo-form').addEventListener('focusin', () => setTodoOpen(true));
+$('#todo-form').addEventListener('focusout', () => {
+  // 폼 안에서 칸을 옮겨 다닐 때는 그대로, 밖으로 나가고 비어 있으면 접는다
+  setTimeout(() => {
+    if (todoPicking || $('#todo-form').contains(document.activeElement)) return;
+    if (!todoHasDraft()) setTodoOpen(false);
+  }, 120);
+});
+$('#todo-form').addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    $('#todo-input').value = '';
+    $('#todo-link').value = '';
+    todoDate = null;
+    todoIgnoreParse = false;
+    renderTodoExtra();
+    document.activeElement?.blur();
+    setTodoOpen(false);
+  }
+  // 링크 칸에서 Enter 도 바로 추가
+  if (e.key === 'Enter' && e.target.id === 'todo-link') { e.preventDefault(); $('#todo-form').requestSubmit(); }
+});
 $('#todo-input').addEventListener('input', () => {
-  if (!$('#todo-input').value.trim()) { todoIgnoreParse = false; }
-  renderTodoPreview();
+  if (!$('#todo-input').value.trim()) todoIgnoreParse = false;
+  renderTodoExtra();
+});
+// 링크 칸에 문장째 붙여 넣어도 주소만 남긴다
+$('#todo-link').addEventListener('input', renderTodoExtra);
+$('#todo-link').addEventListener('change', () => {
+  const v = $('#todo-link').value.trim();
+  const m = v.match(URL_RE);
+  if (m && m[0] !== v) { $('#todo-link').value = cleanUrl(m[0]) || v; renderTodoExtra(); }
 });
 $('#todo-date-btn').addEventListener('click', (e) => {
-  openDatePicker($('#todo-date'), e.currentTarget, todoDate || todoDraft()?.date, (v) => {
+  todoPicking = true;
+  openDatePicker($('#todo-date'), e.currentTarget, todoDraft().date, (v) => {
     todoDate = v;
-    renderTodoPreview();
+    if (!v) todoIgnoreParse = true;
+    renderTodoExtra();
     $('#todo-input').focus();
   });
+  // 선택 창이 닫히면(고르든 취소하든) 다시 접을 수 있게
+  setTimeout(() => { todoPicking = false; }, 400);
+  $('#todo-date').addEventListener('blur', () => { todoPicking = false; }, { once: true });
+});
+$('#todo-date-clear').addEventListener('click', () => {
+  todoDate = null;
+  todoIgnoreParse = true;
+  renderTodoExtra();
+  $('#todo-input').focus();
 });
 $('#todo-form').addEventListener('submit', (e) => {
   e.preventDefault();
   const d = todoDraft();
-  if (!d) return;
+  if (!d.text) { $('#todo-input').focus(); return; }
+  if (d.badLink) { toast('링크는 http 또는 https 주소만 넣을 수 있어요', null, 'err'); $('#todo-link').focus(); return; }
   addTodo(d.text, d.date, d.url);
   $('#todo-input').value = '';
+  $('#todo-link').value = '';
   todoDate = null;
   todoIgnoreParse = false;
-  renderTodoPreview();
+  renderTodoExtra();
+  $('#todo-input').focus(); // 연달아 입력할 수 있게 펼친 채로 둔다
 });
 
 function addTodo(text, date = null, url = null) {
