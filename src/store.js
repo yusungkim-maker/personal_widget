@@ -73,7 +73,7 @@ const DEFAULTS = {
   notify: { events: true, eventMinutes: 10, todos: true, todoTime: '09:00' },
   brief: { enabled: true, time: '08:30', last: '' }, // 아침 브리핑
   backup: { last: null, extraDir: '' },               // 자동 백업
-  work: { enabled: true, state: 'login' },            // flex 근무 시간 (하루 한 번 화면에서 읽음)
+  work: { enabled: true, state: 'login', lunchStart: '12:00', lunchMin: 60 }, // flex 근무 시간 (하루 한 번 화면에서 읽음), 점심시간은 근무에서 뺀다
   quick: { hotkey: 'Control+Alt+M', userSet: false }, // 빠른 입력 단축키 ('' 이면 끔)
   todos: [],
   memos: [], // { id, title, body, color, createdAt, updatedAt }

@@ -205,6 +205,9 @@
         <div class="group">
           <h3>flex 근무 시간</h3>
           <label class="check"><input type="checkbox" id="set-work"> 시계 아래에 오늘 근무 시간 보여 주기</label>
+          <label class="row">점심시간 (근무 시간에서 빼요)
+            <span class="lunch-row"><input type="time" id="set-lunch-start" class="field sm">
+              <select id="set-lunch-min" class="field sm"><option value="0">없음</option><option value="30">30분</option><option value="60">1시간</option><option value="90">1시간 30분</option></select></span></label>
           <p class="hint" id="work-state"></p>
           <div class="key-row wrap">
             <button class="btn ghost" id="flex-login">flex 로그인</button>

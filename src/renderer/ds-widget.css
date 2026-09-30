@@ -263,3 +263,6 @@
 #todo-link { flex: 1; min-width: 0; background: none; border: 0; outline: none; color: var(--ink); font: inherit; font-size: 12px; }
 .todo-ev.done .mini-chk { display: grid; place-items: center; }
 .todo-ev.done .mini-chk::after { content: ''; width: 7px; height: 3.5px; border: 2px solid var(--on-accent); border-top: 0; border-right: 0; transform: translateY(-1px) rotate(-45deg); }
+.lunch-row { display: inline-flex; gap: 6px; }
+.lunch-row .field { width: auto; }
+.wk-bar.paused i { opacity: .45; }
