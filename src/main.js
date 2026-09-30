@@ -435,10 +435,12 @@ app.whenReady().then(() => {
         await new Promise((r) => setTimeout(r, 400));
         fs.writeFileSync(path.join(dir, `cap-popup-${i}.png`), (await w.webContents.capturePage()).toPNG());
       }
-      if (process.env.WIDGET_CAPTURE_ONLY) return;
+      // 캡처가 끝나면 반드시 종료한다 (테스트 창이 실제 위젯처럼 화면에 남지 않게)
+      if (process.env.WIDGET_CAPTURE_ONLY) return app.exit(0);
       openNationwide();
       setTimeout(async () => {
         fs.writeFileSync(path.join(dir, 'cap-nation.png'), (await nationWin.webContents.capturePage()).toPNG());
+        app.exit(0);
       }, 12000);
     }, 6000);
   }
