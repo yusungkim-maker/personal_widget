@@ -12,7 +12,7 @@ const backup = require('./backup');
 const flex = require('./flex');
 const weather = require('./weather');
 
-const BASE_WIDTH = 340;
+const BASE_WIDTH = 360; // 디자인 시스템: 카드 여백 18px 를 넣어도 줄바꿈이 늘지 않는 폭
 const APP_NAME = 'YuskWidget';
 
 let win = null;

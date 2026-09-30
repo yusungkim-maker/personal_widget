@@ -16,7 +16,7 @@ const DEFAULTS = {
   appearance: {
     theme: 'dark', // dark | light
     accent: '#8ab4ff',
-    glass: 0.72, // 배경 농도 (0~1)
+    glass: 0.65, // 배경 농도 (0~1) — 디자인 시스템 opacity-glass
     clock24h: true,
     compact: false, // 컴팩트 모드: 시계 + 오늘 카드만
     showSeconds: false,

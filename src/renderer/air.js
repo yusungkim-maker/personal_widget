@@ -30,7 +30,7 @@ async function loadAir() {
   try {
     [airData, warnData] = await Promise.all([widget.weatherAir(), widget.weatherWarnings()]);
   } catch { /* 표시만 안 함 */ }
-  renderAir();
+  renderWeather(); // 날씨 줄에 미세먼지 등급이 들어가므로 다시 그린다
   renderSummaries();
 }
 

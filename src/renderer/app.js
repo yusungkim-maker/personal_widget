@@ -14,6 +14,9 @@ function applyAppearance() {
   const a = config.appearance;
   document.documentElement.dataset.theme = a.theme;
   document.documentElement.style.setProperty('--accent', a.accent);
+  // 강조색이 바뀌면 옅은 강조색도 같은 색으로 맞춘다
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(a.accent.slice(i, i + 2), 16));
+  if ([r, g, b].every(Number.isFinite)) document.documentElement.style.setProperty('--accent-soft', `rgba(${r}, ${g}, ${b}, 0.16)`);
   document.documentElement.style.setProperty('--glass', a.glass);
   document.body.classList.toggle('locked', config.window.locked);
 
@@ -97,6 +100,7 @@ let weatherData = [];
 
 // 강수확률 표시: ☂ 자리는 "지금" 값, 오늘 남은 시간 중 30% 이상이 있으면 그 시각을 따로 붙인다
 const hourLabel = (h) => (h === 0 ? '자정' : h < 12 ? `오전 ${h}시` : h === 12 ? '정오' : `오후 ${h - 12}시`);
+const DROP = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c3.5 4.6 6 8.1 6 11a6 6 0 0 1-12 0c0-2.9 2.5-6.4 6-11z"/></svg>';
 function popNow(p) {
   const v = p.data.current.pop;
   return `<span class="pop" title="지금 시각의 강수확률 (기상청 단기예보)">☂${v ?? '-'}%</span>`;
@@ -127,30 +131,42 @@ function renderWeather() {
     if (!p.ok) return `<div class="w-row"><div></div><div><div class="w-name">${esc(p.name)}</div><div class="w-desc">${esc(p.error)}</div></div><div></div></div>`;
     const c = p.data.current;
     const t = p.data.daily[0] || {};
-    return `<div class="w-row" title="바람 ${c.wind}m/s · 1시간 강수 ${c.rain1h}mm">
-      ${weatherIcon(c.icon, 40)}
-      <div>
+    // 디자인 시스템 WeatherCard: 이름 / 날씨·습도·미세 / 비 칩 · 오른쪽은 기온과 ↑↓ 두 줄
+    const dust = typeof airData !== 'undefined' ? airData.find((a) => a.name === p.name) : null;
+    const dustWord = dust?.ok && dust.grade != null ? ` · 미세 ${['좋음', '보통', '나쁨', '매우나쁨'][dust.grade]}` : '';
+    const dustChip = dust?.ok && dust.grade >= 2 ? `<span class="chip ${dust.grade >= 3 ? 'danger' : 'warn'}">미세먼지 ${['좋음', '보통', '나쁨', '매우나쁨'][dust.grade]}</span>` : '';
+    const peak = t.pop != null && t.pop >= 30 && t.pop > (c.pop ?? 0) && t.popHour != null ? `<span class="chip info">${hourLabel(t.popHour)} ${t.pop}%</span>` : '';
+    const tip = `바람 ${c.wind}m/s · 1시간 강수 ${c.rain1h}mm${dust?.ok ? ` · 미세먼지 ${dust.pm10 ?? '-'}㎍/㎥ · 초미세먼지 ${dust.pm25 ?? '-'}㎍/㎥${dust.source === 'model' ? ' (예측값)' : ''}` : ''}`;
+    return `<div class="w-row" title="${esc(tip)}">
+      ${weatherIcon(c.icon, 28)}
+      <div style="min-width:0">
         <div class="w-name">${esc(p.name)}</div>
-        <div class="w-desc">${esc(c.desc)} · 습도 ${c.humidity}%</div>
-        <div class="w-dust" data-dust-row="${esc(p.name)}"></div>
+        <div class="w-desc">${esc(c.desc)} · 습도 ${c.humidity}%${dustWord}</div>
+        <div class="w-chips"><span class="chip info">${DROP}지금 ${c.pop ?? '-'}%</span>${peak}${dustChip}</div>
       </div>
       <div class="w-right">
-        <div class="w-temp">${fmtT(c.temp)}</div>
-        <div class="w-mm"><span class="hi">${fmtT(t.max)}</span> / <span class="lo">${fmtT(t.min)}</span>${popNow(p)}</div>
-        ${popPeak(p) ? `<div class="w-peak">${popPeak(p)}</div>` : ''}
+        <div class="w-temp num">${fmtT(c.temp)}</div>
+        <div class="w-mm num">↑${fmtT(t.max).replace('°', '')} ↓${fmtT(t.min).replace('°', '')}</div>
       </div>
     </div>`;
   }).join('');
 
-  // 첫 번째 지역의 시간별 예보
+  // 첫 번째 지역의 시간별 예보: 여섯 칸. 비 예보가 없으면 2시간 간격, 있으면 그 시간대가 보이게 1시간 간격
   const first = weatherData.find((p) => p.ok);
-  $('#w-hourly').innerHTML = first ? first.data.hourly.slice(0, 12).map((h) => `
+  $('#w-hourly-sec').hidden = !first;
+  if (first) {
+    const hrs = first.data.hourly.slice(0, 12);
+    const rainy = hrs.some((h) => h.pop >= 30);
+    const slots = (rainy ? hrs : hrs.filter((_, i) => i % 2 === 0)).slice(0, 6);
+    $('#w-hourly-place').textContent = first.name;
+    $('#w-hourly').innerHTML = slots.map((h) => `
     <div class="h-item">
-      <span class="${h.hour === 0 ? 'h-day' : 'muted'}">${h.hour === 0 ? '내일' : `${h.hour}시`}</span>
-      ${weatherIcon(h.icon, 24)}
-      <span class="h-t">${h.temp}°</span>
-      <span class="h-p">${h.pop >= 30 ? `${h.pop}%` : ''}</span>
-    </div>`).join('') : '';
+      <span class="${h.hour === 0 ? 'h-day' : ''}">${h.hour === 0 ? '내일' : `${h.hour}시`}</span>
+      ${weatherIcon(h.icon, 22)}
+      <span class="h-t num">${h.temp}°</span>
+      <span class="h-p num">${h.pop >= 20 ? `${h.pop}%` : ''}</span>
+    </div>`).join('');
+  }
 
   // 가져온 시각이 아니라 기상청 관측 시각을 보여 준다 (초단기실황은 정시마다 한 번 관측)
   const at = first ? new Date(first.data.updatedAt) : null;
@@ -271,27 +287,31 @@ function renderEvents() {
       <span class="bar"></span><span class="t">${fmtEventTime(e, d)}</span><span class="ti">${esc(e.title)}</span>${evState(e)}</div>`;
 
   const dayTodos = todosOn(day);
-  let html = `<div class="ev-day">${dayLabel(day)}</div>`;
-  html += list.length || dayTodos.length ? list.map((e) => evHtml(e, day)).join('') : '<div class="ev-empty">일정이 없어요 · 날짜를 두 번 누르면 바로 추가할 수 있어요</div>';
+  const isToday = day === ymd(new Date());
+  // 그날: 일정 먼저, 할 일은 체크박스로 구분 (줄마다 "할 일" 글자를 반복하지 않는다)
+  let html = `<div class="ev-group"><p class="sec-label">${isToday ? `오늘 · ${dayLabel(day).replace(' · 오늘', '')}` : dayLabel(day)}</p><div class="ev-group today-panel">`;
+  html += list.length || dayTodos.length ? list.map((e) => evHtml(e, day)).join('') : '<div class="ev-empty">일정이 없어요. 날짜를 두 번 누르면 바로 추가할 수 있어요.</div>';
   html += dayTodos.map((t) => `<div class="ev todo-ev ${t.done ? 'done' : ''}" data-tid="${t.id}">
-      <span class="bar"></span><span class="t"><button class="mini-chk" data-act="toggle" title="완료"></button>할 일</span><span class="ti">${esc(t.text)}</span></div>`).join('');
+      <span class="bar"></span><span class="t"><button class="mini-chk" data-act="toggle" title="${t.done ? '완료 취소' : '완료'}"></button></span><span class="ti">${esc(t.text)}</span>${!t.done && t.date === ymd(new Date()) ? '<span class="chip warn">오늘</span>' : ''}</div>`).join('');
+  html += '</div></div>';
 
   // 오늘을 보고 있으면 앞으로 7일간의 일정도 보여 준다
   if (day === ymd(new Date())) {
     const until = ymd(new Date(Date.now() + 7 * 864e5));
     const upcoming = allEvents().filter((e) => e.startDay > day && e.startDay <= until && !e.holiday).slice(0, 5);
     if (upcoming.length) {
-      html += '<div class="ev-day">다가오는 일정</div>';
+      html += '<div class="ev-group"><p class="sec-label">다가오는 일정</p>';
       html += upcoming.map((e) => {
         const [, m, d] = e.startDay.split('-').map(Number);
         const t = e.allDay ? '' : ` ${fmtEventTime(e, e.startDay)}`;
         return `<div class="ev ${evClass(e)}" ${e.gid && !e.pending ? `data-gid="${esc(e.gid)}"` : ''}><span class="bar"></span><span class="t">${m}/${d}${t}</span><span class="ti">${esc(e.title)}</span>${evState(e)}</div>`;
       }).join('');
+      html += '</div>';
     }
   }
   const shown = cal.events.filter((e) => e.startDay.slice(0, 7) <= ymd(cal.view).slice(0, 7) && e.endDay.slice(0, 7) >= ymd(cal.view).slice(0, 7));
   const monthTodos = config.todos.some((t) => t.date && t.date.slice(0, 7) === ymd(cal.view).slice(0, 7));
-  if (shown.some((e) => e.flex) || monthTodos) {
+  if (cal.showLegend) {
     html += `<div class="cal-legend"><span><i></i>일정</span>${shown.some((e) => e.flex) ? '<span><i class="f"></i>flex 휴가·근무</span>' : ''}${monthTodos ? '<span><i class="t"></i>할 일</span>' : ''}<span><i class="h"></i>공휴일</span></div>`;
   }
   if (!config.calendar.icalUrls.length && !cal.googleConnected) {
@@ -371,7 +391,7 @@ function renderTodos() {
     (a.t.done - b.t.done) || ((a.t.date || '9999') < (b.t.date || '9999') ? -1 : (a.t.date || '9999') > (b.t.date || '9999') ? 1 : a.i - b.i));
   $('#todo-list').innerHTML = todos.length
     ? order.map(({ t }) => `<li class="todo ${t.done ? 'done' : ''}" data-id="${t.id}">
-        <button class="chk" data-act="toggle" title="완료"></button>
+        <button class="chk ${t.date ? 'dated' : ''}" data-act="toggle" title="완료"></button>
         <span class="txt">${esc(t.text)}</span>
         ${todoBadge(t)}
         <button class="del" data-act="del" title="삭제">✕</button></li>`).join('')

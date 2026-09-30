@@ -17,6 +17,7 @@ function renderWork() {
   const w = workCfg();
   if (!w.enabled) { el.hidden = true; return; }
   el.hidden = false;
+  el.classList.toggle('plain', !(w.state === 'ok' && w.fetchedDay === new Date().toDateString() && w.status !== '퇴근' && w.status !== '근무 전'));
   const isToday = w.fetchedDay === new Date().toDateString();
   let html;
   if (w.state === 'login') {
@@ -33,10 +34,11 @@ function renderWork() {
     const min = workedMinutes(w) ?? 0;
     const left = WORK_GOAL_MIN - min;
     const pct = Math.min(100, Math.round((min / WORK_GOAL_MIN) * 100));
-    html = `<span class="wk-dot on"></span><b>${esc(w.status || '근무 중')} ${dur(min)}</b>
-      <span class="muted">· 출근 약 ${hm(w.clockInAt)}</span>
-      <span class="wk-left ${left <= 0 ? 'over' : ''}">${left > 0 ? `8시간까지 ${dur(left)} (${hm(Date.now() + left * 60e3)})` : '8시간 채웠어요'}</span>
-      <span class="wk-bar"><i style="width:${pct}%"></i></span>`;
+    // 디자인 시스템 ClockCard: 상태·시간 / 출근 시각 · 진행 막대 · 남은 시간 한 줄
+    html = `<b>${esc(w.status || '근무 중')} <span class="num">${dur(min)}</span></b>
+      <span class="wk-in">출근 ${hm(w.clockInAt)}</span>
+      <span class="wk-bar ${left <= 0 ? 'done' : ''}"><i style="width:${pct}%"></i></span>
+      <span class="wk-left num ${left <= 0 ? 'over' : ''}">${left > 0 ? `8시간까지 ${dur(left)} · ${hm(Date.now() + left * 60e3)} 예정` : '8시간 채웠어요'}</span>`;
   }
   el.innerHTML = html;
   el.title = w.fetchedAt ? `flex 화면 기준 · ${hm(w.fetchedAt)}에 읽음 (누르면 다시 불러와요)` : '';
