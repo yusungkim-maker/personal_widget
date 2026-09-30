@@ -42,7 +42,7 @@ const hoursAgo = (h) => kst(new Date(Date.now() - h * 3600e3));
 const at = (k) => ({ base_date: ymdOf(k) });
 
 function ncstCandidates() {
-  // 초단기실황: 매시 정시 관측
+  // 초단기실황: 매시 정시 관측, 약 5분 뒤 공개 (2026-09-30 실측: 11:00 관측이 11:05에 나옴, 한 시간 안에는 갱신 없음)
   const k = kst();
   return [0, 1, 2].map((h) => { const b = h ? hoursAgo(h) : k; return { ...at(b), base_time: `${pad(b.h)}00` }; });
 }

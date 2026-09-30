@@ -960,6 +960,13 @@ async function init() {
   renderWork();
   setInterval(tickClock, 1000);
   setInterval(() => loadWeather(), 10 * 60e3);
+  // 기상청은 정시 관측을 약 5분 뒤에 공개한다 (실측) → 매시 6분에 바로 새로 불러온다
+  const atHourPlus6 = () => {
+    const n = new Date();
+    const next = new Date(n.getFullYear(), n.getMonth(), n.getDate(), n.getHours() + (n.getMinutes() >= 6 ? 1 : 0), 6, 30);
+    setTimeout(() => { loadWeather(true); atHourPlus6(); }, next - n);
+  };
+  atHourPlus6();
   setInterval(() => loadCalendar(true), 15 * 60e3);
 }
 
