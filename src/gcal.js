@@ -45,12 +45,29 @@ function importClient(text) {
   return status();
 }
 
+// 배포판: src/oauth-client.json (git 에 올리지 않음) 에 넣은 "데스크톱 앱" 클라이언트를 기본으로 쓴다.
+// 사용자가 직접 가져온 클라이언트가 있으면 그것이 우선이다.
+let bundled;
+function bundledClient() {
+  if (bundled !== undefined) return bundled;
+  try {
+    const j = require('./oauth-client.json');
+    const c = j.installed || j;
+    bundled = c.client_id && c.client_secret ? { id: c.client_id, secret: c.client_secret } : null;
+  } catch {
+    bundled = null;
+  }
+  return bundled;
+}
+const clientIdOf = () => g().clientId || bundledClient()?.id || '';
+
 function clientSecret() {
   try {
-    return JSON.parse(store.getSecret('google') || '{}').clientSecret || null;
+    if (g().clientId) return JSON.parse(store.getSecret('google') || '{}').clientSecret || null;
   } catch {
     return null;
   }
+  return bundledClient()?.secret || null;
 }
 
 function tokens() {
@@ -70,7 +87,7 @@ function saveTokens(t) {
 function status() {
   const c = g();
   return {
-    hasClient: !!c.clientId && !!clientSecret(),
+    hasClient: !!clientIdOf() && !!clientSecret(),
     connected: !!tokens()?.refresh_token && !c.expired,
     expired: !!c.expired, // 구글이 로그인을 만료시킴 → 다시 연결하면 된다 (저장된 값은 그대로)
     email: c.email || '',
@@ -100,7 +117,7 @@ let connectJob = null;
 
 function connect() {
   if (connectJob) return connectJob;
-  const clientId = g().clientId;
+  const clientId = clientIdOf();
   const secret = clientSecret();
   if (!clientId || !secret) return Promise.reject(new GcalError('NO_CLIENT', '먼저 OAuth 클라이언트 JSON 을 가져와 주세요.'));
 
@@ -190,7 +207,7 @@ async function accessToken(force = false) {
   if (!force && t.access_token && Date.now() < t.expires_at) return t.access_token;
   try {
     const r = await tokenRequest({
-      grant_type: 'refresh_token', refresh_token: t.refresh_token, client_id: g().clientId, client_secret: clientSecret(),
+      grant_type: 'refresh_token', refresh_token: t.refresh_token, client_id: clientIdOf(), client_secret: clientSecret(),
     });
     saveTokens({ ...t, access_token: r.access_token, expires_at: Date.now() + (r.expires_in - 60) * 1000 });
     return r.access_token;

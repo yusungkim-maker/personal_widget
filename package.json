@@ -1,6 +1,6 @@
 {
   "name": "yusk-widget",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "개인용 Windows 바탕화면 위젯 (시계·날씨·달력·할 일·AI)",
   "main": "src/main.js",
   "scripts": {
@@ -16,7 +16,7 @@
     "koffi": "^3.3.2",
     "node-ical": "^0.27.2"
   },
-  "productName": "Yusk Widget",
+  "productName": "뭉치위젯",
   "private": true,
   "devDependencies": {
     "electron": "^44.4.5",
@@ -24,7 +24,7 @@
   },
   "build": {
     "appId": "com.yusk.widget",
-    "productName": "Yusk Widget",
+    "productName": "뭉치위젯",
     "directories": {
       "output": "dist",
       "buildResources": "build"
@@ -41,17 +41,31 @@
     "electronDist": "node_modules/electron/dist",
     "win": {
       "target": "nsis",
-      "icon": "build/icon.ico"
+      "icon": "build/icon.ico",
+      "executableName": "MungchiWidget"
     },
     "nsis": {
-      "oneClick": true,
+      "oneClick": false,
       "perMachine": false,
       "runAfterFinish": true,
-      "createDesktopShortcut": false,
+      "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Yusk Widget",
-      "artifactName": "YuskWidget-Setup-${version}.${ext}",
-      "deleteAppDataOnUninstall": false
+      "shortcutName": "뭉치위젯",
+      "artifactName": "MungchiWidget-Setup-${version}.${ext}",
+      "deleteAppDataOnUninstall": false,
+      "allowToChangeInstallationDirectory": true,
+      "allowElevation": false,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerSidebar": "build/installerSidebar.bmp",
+      "uninstallerSidebar": "build/installerSidebar.bmp",
+      "installerHeader": "build/installerHeader.bmp",
+      "installerLanguages": [
+        "ko_KR"
+      ],
+      "language": "1042",
+      "multiLanguageInstaller": false,
+      "uninstallDisplayName": "뭉치위젯"
     }
   }
 }

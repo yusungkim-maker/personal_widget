@@ -22,6 +22,9 @@ let tray = null;
 let bottomTimer = null;
 let contentHeight = 600;
 
+// 설정 폴더는 이름이 바뀌어도(Yusk Widget → 뭉치위젯) 항상 예전 폴더를 쓴다 → 설정·키를 옮길 필요가 없다
+app.setPath('userData', path.join(app.getPath('appData'), 'Yusk Widget'));
+
 // 개발용 캡처: 실제 위젯과 겹치지 않게 별도 데이터 폴더를 쓴다 (설치본에서는 무시)
 if (!app.isPackaged && process.env.WIDGET_USERDATA) app.setPath('userData', process.env.WIDGET_USERDATA);
 
@@ -187,7 +190,9 @@ function resizeToContent() {
 }
 
 // Windows 11 이 레지스트리 시작 항목을 건너뛰는 경우가 있어서, 설치판은 "시작 프로그램" 폴더 바로 가기도 함께 둔다.
-const startupShortcut = () => path.join(app.getPath('appData'), 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup', 'Yusk Widget.lnk');
+const startupDir = () => path.join(app.getPath('appData'), 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup');
+const startupShortcut = () => path.join(startupDir(), '뭉치위젯.lnk');
+const oldStartupShortcut = () => path.join(startupDir(), 'Yusk Widget.lnk'); // 1.3.0 까지의 이름
 
 function applyAutoStart(on) {
   // 개발 실행은 실제 자동 실행 등록(레지스트리·시작프로그램)을 절대 건드리지 않는다
@@ -202,6 +207,7 @@ function applyAutoStart(on) {
   const fs = require('fs');
   const lnk = startupShortcut();
   try {
+    if (fs.existsSync(oldStartupShortcut())) fs.unlinkSync(oldStartupShortcut());
     if (on) {
       shell.writeShortcutLink(lnk, fs.existsSync(lnk) ? 'replace' : 'create', {
         target: process.execPath, args: '--autostart', appUserModelId: APP_ID, description: '뭉치위젯 자동 실행',
@@ -388,6 +394,9 @@ ipcMain.handle('weather:warnings', () => air.fetchWarnings(store.getSecret('weat
 ipcMain.handle('weather:air-status', () => air.status());
 ipcMain.handle('weather:air-recheck', () => air.resetBlocks());
 ipcMain.handle('weather:search', (_e, q) => weather.searchCity(q));
+ipcMain.handle('weather:locate', async () => {
+  try { return { ok: true, ...(await require('./locate').locate()) }; } catch (e) { return { ok: false, error: e.message }; }
+});
 ipcMain.handle('weather:open-nationwide', () => openNationwide());
 ipcMain.handle('window:show-widget', () => { win?.show(); win?.focus(); });
 ipcMain.handle('window:close-self', (e) => BrowserWindow.fromWebContents(e.sender)?.close());

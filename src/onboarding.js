@@ -86,6 +86,8 @@ function register(d) {
     const w = deps.getWin();
     if (w && !w.isDestroyed()) { w.show(); deps.applyWindowSettings(); }
     deps.broadcastConfig();
+    // 위젯이 "설정을 마쳤어요" 알림을 띄운다
+    if (w && !w.isDestroyed()) setTimeout(() => w.webContents.send('onb-finished', Array.isArray(skipped) ? skipped : []), 1500);
     ob?.close();
   });
   ipcMain.handle('onb:open', (_e, step) => { open(step); });

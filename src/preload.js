@@ -31,6 +31,7 @@ contextBridge.exposeInMainWorld('widget', {
   weatherLocations: (force) => ipcRenderer.invoke('weather:locations', force),
   weatherNationwide: (force) => ipcRenderer.invoke('weather:nationwide', force),
   searchPlace: (q) => ipcRenderer.invoke('weather:search', q),
+  locate: () => ipcRenderer.invoke('weather:locate'),
   weatherAir: () => ipcRenderer.invoke('weather:air'),
   weatherWarnings: () => ipcRenderer.invoke('weather:warnings'),
   weatherAirStatus: () => ipcRenderer.invoke('weather:air-status'),
@@ -80,5 +81,6 @@ contextBridge.exposeInMainWorld('widget', {
     weatherTest: (key) => ipcRenderer.invoke('onb:weather-test', key),
     finish: (skipped) => ipcRenderer.invoke('onb:finish', skipped),
     open: (step) => ipcRenderer.invoke('onb:open', step),
+    onFinished: (fn) => ipcRenderer.on('onb-finished', (_e, left) => fn(left)),
   },
 });

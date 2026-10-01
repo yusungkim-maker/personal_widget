@@ -105,3 +105,17 @@ $('#cal-legend-btn').addEventListener('click', () => { cal.showLegend = !cal.sho
   const original = window.applyAppearance;
   window.applyAppearance = function (...args) { const r = original.apply(this, args); renderOnbDot(); return r; };
 }
+
+// 처음 설정을 마치면 알림으로 알려 주고, 남은 항목이 있으면 어디서 이어서 하는지 알려 준다
+const ONB_NAME = { weather: '날씨', calendar: '달력', ai: 'AI 비서', work: '업무 연동' };
+widget.onb.onFinished(async (left) => {
+  config = await widget.getConfig();
+  renderOnbDot();
+  const rest = (left || []).filter((k) => ONB_NAME[k]);
+  try {
+    const n = new Notification('설정을 마쳤어요', {
+      body: rest.length ? `남은 ${rest.length}개(${rest.map((k) => ONB_NAME[k]).join(', ')})는 ⋯ 메뉴 → 처음 설정 이어서 하기에서 할 수 있어요.` : '이제 바탕화면에서 바로 쓰면 돼요.',
+    });
+    n.onclick = () => widget.showWidget();
+  } catch { /* 알림을 쓸 수 없는 환경 */ }
+});

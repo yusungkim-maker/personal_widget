@@ -114,7 +114,8 @@ const VIEW = {
       <h1>어느 지역 날씨를 볼까요?</h1>
       <div class="ob-sec"><span class="ob-label">지역 (최대 3곳)</span>
         ${locs.length ? `<div class="ob-panel">${locs.map((l, i) => `<div class="ob-row"><span class="sub num" style="width:12px">${i + 1}</span><span class="grow"><b style="font-weight:600">${esc(l.name)}</b></span><button class="loc-x" data-del-loc="${i}" aria-label="${esc(l.name)} 빼기">✕</button></div>`).join('')}</div>` : '<div class="ob-note">아직 지역이 없어요. 아래에서 검색해 추가해 주세요.</div>'}
-        ${locs.length < 3 ? `<div class="row2"><input class="in" id="loc-q" placeholder="지역 검색 — 예: 성남시 분당구"><button class="b" id="loc-go">검색</button></div>` : ''}
+        ${locs.length < 3 ? `<div class="row2"><input class="in" id="loc-q" placeholder="지역 검색 — 예: 성남시 분당구"><button class="b" id="loc-go">검색</button><button class="b" id="loc-here" ${ui.locating ? 'disabled' : ''}>${ui.locating ? '찾는 중…' : '현재 위치'}</button></div>` : ''}
+        ${ui.locErr ? errLine(ui.locErr) : ''}
         ${ui.searching ? '<div class="result wait">찾는 중…</div>' : ''}
         ${ui.results.length ? `<div class="results">${ui.results.map((r, i) => `<button data-add-loc="${i}">${esc(r.name)}<span>${esc(r.region)}</span></button>`).join('')}</div>` : ''}
       </div>
@@ -395,6 +396,16 @@ const BIND = {
       if (!ui.results.length) $('#loc-q')?.insertAdjacentHTML('afterend', '');
     };
     $('#loc-go')?.addEventListener('click', search);
+    $('#loc-here')?.addEventListener('click', async () => {
+      ui.locating = true; ui.locErr = ''; render();
+      const r = await widget.locate();
+      ui.locating = false;
+      if (!r.ok) { ui.locErr = r.error; return render(); }
+      // 이미 있는 지역과 거의 같으면 다시 넣지 않는다
+      const near = config.weather.locations.some((l) => Math.abs(l.latitude - r.latitude) < 0.03 && Math.abs(l.longitude - r.longitude) < 0.03);
+      if (!near) await patch({ weather: { locations: [{ name: r.name, latitude: r.latitude, longitude: r.longitude }, ...config.weather.locations].slice(0, 3) } });
+      render();
+    });
     $('#loc-q')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') search(); });
     $$('[data-add-loc]').forEach((b) => b.addEventListener('click', async () => {
       const r = ui.results[Number(b.dataset.addLoc)];
