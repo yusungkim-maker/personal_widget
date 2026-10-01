@@ -39,6 +39,24 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !menuEl.
 window.addEventListener('blur', closeMenu);
 $('#scroller').addEventListener('scroll', closeMenu);
 
+// 처음 설정에서 "나중에" 한 항목 중 아직 안 된 것 (설정에서 채우면 저절로 빠진다)
+const ONB_STEP = { weather: 3, calendar: 4, ai: 5, work: 6 };
+function onbRemaining() {
+  const left = config?.onboarding?.skipped || [];
+  const done = {
+    weather: () => config.weather.locations.length > 0,
+    calendar: () => config.calendar.icalUrls.length > 0 || !!config.google?.email,
+    ai: () => !!config.sections.ai,
+    work: () => config.work?.state === 'ok' || !config.work?.enabled,
+  };
+  return left.filter((k) => ONB_STEP[k] && !(done[k]?.() ?? true));
+}
+function renderOnbDot() {
+  const btn = $('#btn-clock-menu');
+  if (!btn || !config) return;
+  btn.classList.toggle('has-dot', onbRemaining().length > 0);
+}
+
 // 시계: 창 모드 · 컴팩트 모드 · 설정
 $('#btn-clock-menu').addEventListener('click', (e) => {
   const mode = config.window.mode;
@@ -50,6 +68,10 @@ $('#btn-clock-menu').addEventListener('click', (e) => {
     { label: '항상 위에 표시', checked: mode === 'top', onClick: () => setMode('top') },
     { sep: true },
     { label: '컴팩트 모드 (시계와 오늘만)', checked: !!config.appearance.compact, onClick: () => $('#btn-compact').click() },
+    { sep: true },
+    ...(onbRemaining().length
+      ? [{ label: `처음 설정 이어서 하기 (${onbRemaining().length}개 남음)`, onClick: () => widget.onb.open(ONB_STEP[onbRemaining()[0]]) }]
+      : [{ label: '처음 설정 다시 하기', onClick: () => widget.onb.open(1) }]),
     { label: '설정', hint: '⚙', onClick: () => openSettings() },
   ]);
 });
@@ -77,3 +99,9 @@ $('#ai-menu-btn').addEventListener('click', (e) => {
 
 // 달력: 색 설명 보기
 $('#cal-legend-btn').addEventListener('click', () => { cal.showLegend = !cal.showLegend; renderCalendar(); });
+
+// 설정이 바뀔 때마다(다른 창에서 바꾼 것 포함) 남은 항목 표시를 맞춘다
+{
+  const original = window.applyAppearance;
+  window.applyAppearance = function (...args) { const r = original.apply(this, args); renderOnbDot(); return r; };
+}

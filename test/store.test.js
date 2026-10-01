@@ -149,3 +149,18 @@ test('저장 중 임시 파일이 남지 않는다', () => {
   t.store.flush();
   assert.ok(!fs.readdirSync(t.userData).some((f) => f.includes('.tmp-')));
 });
+
+test('이미 쓰던 설정이 있으면 온보딩은 끝난 것으로 본다 (기존 사용자에게 뜨지 않음)', () => {
+  const t = freshStore();
+  fs.writeFileSync(path.join(t.userData, 'config.json'), JSON.stringify({ todos: [{ id: 'a', text: 'x' }] }));
+  t.store.load();
+  assert.strictEqual(t.store.get().onboarding.done, true);
+  const s2 = t.reopen();
+  assert.strictEqual(s2.get().onboarding.done, true, '저장까지 돼서 다음에도 그대로');
+});
+
+test('정말 처음 설치면 온보딩을 시작한다', () => {
+  const { store } = freshStore();
+  store.load();
+  assert.strictEqual(store.get().onboarding.done, false);
+});

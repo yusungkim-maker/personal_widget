@@ -89,7 +89,7 @@ async function fetchNow(reason = 'manual') {
 function openLogin() {
   if (loginWin && !loginWin.isDestroyed()) { loginWin.focus(); return; }
   loginWin = new BrowserWindow({
-    width: 520, height: 760, title: 'flex 로그인 (Yusk Widget)', autoHideMenuBar: true,
+    width: 520, height: 760, title: 'flex 로그인 (뭉치위젯)', autoHideMenuBar: true,
     webPreferences: { partition: PARTITION, sandbox: true, contextIsolation: true, nodeIntegration: false },
   });
   loginWin.webContents.setUserAgent(UA());

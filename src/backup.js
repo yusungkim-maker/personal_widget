@@ -84,7 +84,7 @@ async function restore(win, reloadAll) {
     data = JSON.parse(fs.readFileSync(r.filePaths[0], 'utf8').replace(/^﻿/, ''));
     if (data.app !== 'Yusk Widget' || !data.config) throw new Error();
   } catch {
-    return { ok: false, error: 'Yusk Widget 백업 파일이 아니에요.' };
+    return { ok: false, error: '뭉치위젯 백업 파일이 아니에요.' };
   }
   const when = new Date(data.createdAt).toLocaleString('ko-KR');
   const c = data.config;

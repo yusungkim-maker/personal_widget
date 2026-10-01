@@ -244,6 +244,58 @@ async function fetchWeather({ key, latitude, longitude, hours = 24 }) {
   return { current, hourly: nextHours, daily, grid, observedAt, updatedAt: new Date().toISOString() };
 }
 
+// ── 키 없이 쓰는 기본 날씨: Open-Meteo 예보 모델 (기상청 키가 없을 때) ──
+// 기상청과 같은 모양(current/hourly/daily)으로 돌려줘서 화면 코드는 그대로 쓴다.
+const WMO = {
+  0: ['clear', '맑음'], 1: ['clear', '대체로 맑음'], 2: ['partly', '구름조금'], 3: ['cloudy', '흐림'],
+  45: ['cloudy', '안개'], 48: ['cloudy', '안개'],
+  51: ['rain', '이슬비'], 53: ['rain', '이슬비'], 55: ['rain', '이슬비'], 56: ['sleet', '어는 비'], 57: ['sleet', '어는 비'],
+  61: ['rain', '비'], 63: ['rain', '비'], 65: ['rain', '강한 비'], 66: ['sleet', '어는 비'], 67: ['sleet', '어는 비'],
+  71: ['snow', '눈'], 73: ['snow', '눈'], 75: ['snow', '많은 눈'], 77: ['snow', '싸락눈'],
+  80: ['shower', '소나기'], 81: ['shower', '소나기'], 82: ['shower', '강한 소나기'], 85: ['snow', '눈 소나기'], 86: ['snow', '눈 소나기'],
+  95: ['shower', '뇌우'], 96: ['shower', '뇌우'], 99: ['shower', '뇌우'],
+};
+const wmo = (c) => WMO[Number(c)] || ['partly', '-'];
+
+async function fetchOpenMeteo({ latitude, longitude, hours = 24 }) {
+  const qs = new URLSearchParams({
+    latitude: String(latitude), longitude: String(longitude), timezone: 'Asia/Seoul', forecast_days: '3', wind_speed_unit: 'ms',
+    current: 'temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,precipitation',
+    hourly: 'temperature_2m,precipitation_probability,weather_code,relative_humidity_2m,wind_speed_10m,precipitation',
+    daily: 'temperature_2m_max,temperature_2m_min,weather_code',
+  });
+  const res = await fetch(`https://api.open-meteo.com/v1/forecast?${qs}`, { signal: AbortSignal.timeout(15000) });
+  if (!res.ok) throw new Error(`기본 날씨 응답 오류 (HTTP ${res.status})`);
+  const j = await res.json();
+  const c = j.current || {};
+  const H = j.hourly || { time: [] };
+  const nowIso = (c.time || new Date().toISOString()).slice(0, 13); // "2026-10-01T14"
+  const slots = H.time.map((t, i) => ({
+    iso: t, date: t.slice(0, 10).replace(/-/g, ''), hour: Number(t.slice(11, 13)),
+    temp: H.temperature_2m[i], pop: H.precipitation_probability?.[i] ?? 0, code: H.weather_code[i],
+    humidity: H.relative_humidity_2m?.[i] ?? 0, wind: H.wind_speed_10m?.[i] ?? 0, pcp: H.precipitation?.[i] ?? 0,
+  }));
+  const [icon, desc] = wmo(c.weather_code);
+  const nowSlot = slots.find((s) => s.iso.slice(0, 13) >= nowIso);
+  const current = {
+    temp: c.temperature_2m, humidity: c.relative_humidity_2m, wind: c.wind_speed_10m, rain1h: c.precipitation || 0,
+    icon, desc, pop: nowSlot ? nowSlot.pop : null,
+  };
+  const hourly = slots.filter((s) => s.iso.slice(0, 13) > nowIso).slice(0, hours).map((s) => ({
+    hour: s.hour, date: s.date, temp: Math.round(s.temp), pop: s.pop || 0, pcp: s.pcp ? `${s.pcp}mm` : '',
+    humidity: s.humidity, wind: s.wind, icon: wmo(s.code)[0], desc: wmo(s.code)[1],
+  }));
+  const D = j.daily || { time: [] };
+  const daily = D.time.map((t, i) => {
+    const date = t.replace(/-/g, '');
+    // 오늘은 남은 시간 중 가장 높은 강수확률 (기상청 쪽과 같은 뜻)
+    const rest = slots.filter((s) => s.date === date && s.iso.slice(0, 13) >= nowIso);
+    const peak = rest.reduce((b, s) => (s.pop > (b?.pop ?? -1) ? s : b), null);
+    return { date, min: Math.round(D.temperature_2m_min[i]), max: Math.round(D.temperature_2m_max[i]), pop: peak ? peak.pop : 0, popHour: peak ? peak.hour : null, icon: wmo(D.weather_code[i])[0] };
+  });
+  return { current, hourly, daily, observedAt: null, source: 'open-meteo', updatedAt: new Date().toISOString() };
+}
+
 // 지역 이름 → 위경도 (OpenStreetMap Nominatim, 한국 지명 검색이 정확하다)
 const PLACE_TYPES = new Set(['province', 'state', 'city', 'county', 'borough', 'town', 'village',
   'municipality', 'suburb', 'quarter', 'neighbourhood', 'city_district', 'district', 'hamlet', 'legal']);
@@ -276,11 +328,14 @@ const cache = new Map();
 function cachedWeather(key, place, force = false) {
   const { nx, ny } = toGrid(place.latitude, place.longitude);
   const id = `${nx},${ny}`;
-  const hit = cache.get(id);
+  const hit = cache.get(key ? id : `om:${id}`);
   if (!force && hit && Date.now() - hit.at < CACHE_MS) return hit.promise;
-  const promise = fetchWeather({ key, latitude: place.latitude, longitude: place.longitude });
-  cache.set(id, { at: Date.now(), promise });
-  promise.catch(() => cache.delete(id));
+  // 기상청 키가 없으면 키 없이 쓰는 기본 날씨로
+  const promise = key
+    ? fetchWeather({ key, latitude: place.latitude, longitude: place.longitude })
+    : fetchOpenMeteo({ latitude: place.latitude, longitude: place.longitude });
+  cache.set(key ? id : `om:${id}`, { at: Date.now(), promise });
+  promise.catch(() => cache.delete(key ? id : `om:${id}`));
   return promise;
 }
 
@@ -329,4 +384,4 @@ const NATIONWIDE = [
   { name: '서귀포', region: '제주', latitude: 33.2541, longitude: 126.5601 },
 ];
 
-module.exports = { fetchWeather, fetchPlaces, searchCity, toGrid, NATIONWIDE };
+module.exports = { fetchWeather, fetchOpenMeteo, fetchPlaces, searchCity, toGrid, NATIONWIDE };

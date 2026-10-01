@@ -90,7 +90,7 @@ function decodeJwtEmail(idToken) {
   }
 }
 
-const DONE_PAGE = (ok, msg) => `<!doctype html><meta charset="utf-8"><title>Yusk Widget</title>
+const DONE_PAGE = (ok, msg) => `<!doctype html><meta charset="utf-8"><title>뭉치위젯</title>
 <body style="font-family:'Segoe UI','Malgun Gothic',sans-serif;background:#12141c;color:#eef1f7;display:grid;place-items:center;height:100vh;margin:0">
 <div style="text-align:center"><div style="font-size:44px">${ok ? '🐾' : '⚠️'}</div>
 <h2 style="margin:10px 0 6px">${ok ? '구글 캘린더가 연결됐어요' : '연결하지 못했어요'}</h2>

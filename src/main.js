@@ -11,6 +11,7 @@ const air = require('./air');
 const backup = require('./backup');
 const flex = require('./flex');
 const weather = require('./weather');
+const onboarding = require('./onboarding');
 
 const BASE_WIDTH = 360; // 디자인 시스템: 카드 여백 18px 를 넣어도 줄바꿈이 늘지 않는 폭
 const APP_NAME = 'YuskWidget';
@@ -121,6 +122,8 @@ function createWindow() {
   win.webContents.on('did-finish-load', () => win.webContents.setZoomFactor(cfg().window.zoom));
 
   win.once('ready-to-show', () => {
+    // 처음 설정 중이면 배치 단계에서 온보딩이 위젯을 보여 준다
+    if (!onboarding.state().done) return;
     win.showInactive();
     applyWindowSettings();
   });
@@ -187,6 +190,8 @@ function resizeToContent() {
 const startupShortcut = () => path.join(app.getPath('appData'), 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup', 'Yusk Widget.lnk');
 
 function applyAutoStart(on) {
+  // 개발 실행은 실제 자동 실행 등록(레지스트리·시작프로그램)을 절대 건드리지 않는다
+  if (!app.isPackaged) return;
   app.setLoginItemSettings({
     openAtLogin: on,
     name: APP_NAME,
@@ -199,7 +204,7 @@ function applyAutoStart(on) {
   try {
     if (on) {
       shell.writeShortcutLink(lnk, fs.existsSync(lnk) ? 'replace' : 'create', {
-        target: process.execPath, args: '--autostart', appUserModelId: APP_ID, description: 'Yusk Widget 자동 실행',
+        target: process.execPath, args: '--autostart', appUserModelId: APP_ID, description: '뭉치위젯 자동 실행',
       });
     } else if (fs.existsSync(lnk)) fs.unlinkSync(lnk);
     log('autostart', { on, runKey: true, startupShortcut: on ? fs.existsSync(lnk) : false });
@@ -296,7 +301,7 @@ function refreshTray() {
 
 function createTray() {
   tray = new Tray(trayIcon());
-  tray.setToolTip('Yusk Widget');
+  tray.setToolTip('뭉치위젯');
   tray.on('click', () => { win.showInactive(); applyWindowSettings(); });
   refreshTray();
 }
@@ -311,12 +316,16 @@ function broadcastConfig() {
 // ───────────────────────── IPC ─────────────────────────
 
 ipcMain.handle('config:get', () => store.publicConfig());
+// 날씨 자료: 기본(키 없이) 을 고르면 키가 있어도 쓰지 않는다 (키는 지우지 않고 그대로 둔다)
+const weatherKey = () => (cfg().weather.source === 'basic' ? null : store.getSecret('weather'));
 
-ipcMain.handle('config:update', (_e, patch) => {
+ipcMain.handle('config:update', (e, patch) => {
   store.update(patch);
   if (patch.window) applyWindowSettings();
   if ('autoStart' in patch) applyAutoStart(!!patch.autoStart);
   refreshTray();
+  // 온보딩 창 등 다른 창에서 바꾼 값은 위젯에도 바로 반영한다
+  if (e.sender !== win?.webContents) broadcastConfig();
   return store.publicConfig();
 });
 
@@ -371,9 +380,9 @@ ipcMain.handle('ai:history', () => llm.getHistory());
 ipcMain.handle('ai:abort', () => llm.abort());
 
 ipcMain.handle('weather:locations', (_e, force) =>
-  weather.fetchPlaces(store.getSecret('weather'), cfg().weather.locations, force));
+  weather.fetchPlaces(weatherKey(), cfg().weather.locations, force));
 ipcMain.handle('weather:nationwide', (_e, force) =>
-  weather.fetchPlaces(store.getSecret('weather'), weather.NATIONWIDE, force));
+  weather.fetchPlaces(weatherKey(), weather.NATIONWIDE, force));
 ipcMain.handle('weather:air', () => air.fetchAir(store.getSecret('weather'), cfg().weather.locations));
 ipcMain.handle('weather:warnings', () => air.fetchWarnings(store.getSecret('weather'), cfg().weather.locations.map((l) => l.name)));
 ipcMain.handle('weather:air-status', () => air.status());
@@ -413,8 +422,13 @@ app.whenReady().then(() => {
   if (process.env.KMA_SERVICE_KEY && !store.getSecret('weather')) {
     store.setSecret('weather', process.env.KMA_SERVICE_KEY);
   }
+  onboarding.register({
+    getWin: () => win, widthPx, contentHeight: () => contentHeight, applyWindowSettings, broadcastConfig, log,
+    icon: path.join(ASSETS, 'icon.png'),
+  });
   createWindow();
   createTray();
+  if (!onboarding.state().done) onboarding.open();
   screen.on('display-metrics-changed', resizeToContent);
 
   // 개발용: WIDGET_CAPTURE=폴더 로 실행하면 위젯과 전국 날씨 창을 PNG로 저장한다
@@ -423,7 +437,10 @@ app.whenReady().then(() => {
     const dir = process.env.WIDGET_CAPTURE;
     const logFile = path.join(dir, 'cap-console.log');
     fs.writeFileSync(logFile, '');
-    win.webContents.on('console-message', (e) => fs.appendFileSync(logFile, `[${e.level}] ${e.message} (${e.sourceId}:${e.lineNumber})\n`));
+    const hook = (w) => w.webContents.on('console-message', (e) => fs.appendFileSync(logFile, `[${e.level}] ${e.message} (${e.sourceId}:${e.lineNumber})\n`));
+    for (const w of BrowserWindow.getAllWindows()) if (w !== win) hook(w);
+    app.on('browser-window-created', (_e, w) => hook(w));
+    win.webContents.on('console-message', (e) => fs.appendFileSync(logFile,`[${e.level}] ${e.message} (${e.sourceId}:${e.lineNumber})\n`));
     setTimeout(async () => {
       if (process.env.WIDGET_CAPTURE_JS) await win.webContents.executeJavaScript(process.env.WIDGET_CAPTURE_JS);
       await new Promise((r) => setTimeout(r, 500));

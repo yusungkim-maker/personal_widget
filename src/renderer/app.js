@@ -118,11 +118,6 @@ function fmtT(v) {
 
 function renderWeather() {
   const list = $('#w-list');
-  if (!config.weather.hasKey) {
-    list.innerHTML = `<div class="w-error">기상청 인증키가 필요해요. <button class="link" data-open-settings>설정 열기</button></div>`;
-    $('#w-hourly').innerHTML = '';
-    return;
-  }
   if (!weatherData.length) {
     list.innerHTML = '<div class="w-error">날씨를 불러오는 중…</div>';
     return;
@@ -172,12 +167,13 @@ function renderWeather() {
   const at = first ? new Date(first.data.updatedAt) : null;
   const obs = first?.data.observedAt ? first.data.observedAt.slice(11, 16) : null;
   const stale = weatherData.find((p) => p.staleError);
-  $('#w-updated').textContent = at ? `기상청 ${obs ? `${obs} 관측` : '실황'} · ${pad(at.getHours())}:${pad(at.getMinutes())} 확인${stale ? ' · 새로 불러오기 실패, 마지막 값 표시 중' : ''}` : '';
+  const src = first?.data.source === 'open-meteo' ? 'Open-Meteo 예보' : `기상청 ${obs ? `${obs} 관측` : '실황'}`;
+  $('#w-updated').textContent = at ? `${src} · ${pad(at.getHours())}:${pad(at.getMinutes())} 확인${stale ? ' · 새로 불러오기 실패, 마지막 값 표시 중' : ''}` : '';
   $('#w-updated').title = '기상청 초단기실황(정시 관측, 5km 격자 값)입니다. 포털 날씨는 다른 업체 자료나 더 짧은 간격의 관측값을 써서 조금 다를 수 있어요.';
 }
 
 async function loadWeather(force = false) {
-  if (!config.sections.weather || !config.weather.hasKey) return renderWeather();
+  if (!config.sections.weather) return renderWeather();
   renderWeather();
   const prev = weatherData;
   let next;
@@ -580,7 +576,7 @@ function aiContext() {
   for (const p of weatherData.filter((x) => x.ok)) {
     const c = p.data.current;
     const d = p.data.daily.map((x, i) => `${x.date.slice(4, 6)}/${x.date.slice(6)} 최저 ${x.min}° 최고 ${x.max}° ${i === 0 ? '남은 시간 최대 강수확률' : '최대 강수확률'} ${x.pop}%${x.popHour != null && x.pop > 0 ? `(${x.popHour}시)` : ''}`).join(', ');
-    lines.push(`날씨(${p.name}, 기상청 ${p.data.observedAt ? p.data.observedAt.slice(11, 16) : ''} 관측): 현재 ${c.temp}° ${c.desc}, 습도 ${c.humidity}%, 지금 강수확률 ${c.pop ?? '-'}% / ${d}`);
+    lines.push(`날씨(${p.name}, ${p.data.source === 'open-meteo' ? 'Open-Meteo 예보 모델' : `기상청 ${p.data.observedAt ? p.data.observedAt.slice(11, 16) : ''} 관측`}): 현재 ${c.temp}° ${c.desc}, 습도 ${c.humidity}%, 지금 강수확률 ${c.pop ?? '-'}% / ${d}`);
   }
   lines.push(...airContextLines());
   const workLine = workContextLine();

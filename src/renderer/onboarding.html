@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'none'">
+  <title>뭉치위젯 처음 설정</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="onboarding.css">
+</head>
+<body>
+  <div id="ob" class="ob">
+    <header class="ob-h" id="ob-head">
+      <img src="../assets/mungchi-cat.svg" alt="" class="ob-ico">
+      <span class="ob-h-t">처음 설정</span>
+      <span class="ob-h-n num" id="ob-count"></span>
+      <button class="ob-x" id="ob-close" title="닫기 (다음에 이어서 해요)" aria-label="닫기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </header>
+    <div class="ob-prog" id="ob-prog"></div>
+    <main class="ob-body" id="ob-body"></main>
+    <footer class="ob-f" id="ob-foot"></footer>
+  </div>
+  <script src="onboarding.js"></script>
+</body>
+</html>

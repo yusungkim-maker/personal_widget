@@ -22,7 +22,7 @@ const DEFAULTS = {
   },
   appearance: {
     theme: 'dark', // dark | light
-    accent: '#8ab4ff',
+    accent: '#b79cff',
     glass: 0.65, // 배경 농도 (0~1) — 디자인 시스템 opacity-glass
     clock24h: true,
     compact: false, // 컴팩트 모드: 시계 + 오늘 카드만
@@ -64,7 +64,7 @@ const DEFAULTS = {
     name: '뭉치',
     profile: 'bsh-gray', // 회색 브리티시 쇼트헤어
     personaPreset: 'pro',
-    catTone: true, // 성격은 그대로 두고 말투만 고양이처럼
+    catTone: false, // 성격은 그대로 두고 말투만 고양이처럼 (처음 설정에서 고른다)
     persona: '',  // 비어 있으면 프리셋 문구를 쓴다
     about: '',    // 나에 대해
     rules: '',    // 항상 지킬 지침
@@ -73,11 +73,13 @@ const DEFAULTS = {
   notify: { events: true, eventMinutes: 10, todos: true, todoTime: '09:00' },
   brief: { enabled: true, time: '08:30', last: '' }, // 아침 브리핑
   backup: { last: null, extraDir: '' },               // 자동 백업
-  work: { enabled: true, state: 'login', lunchStart: '12:00', lunchMin: 60 }, // flex 근무 시간 (하루 한 번 화면에서 읽음), 점심시간은 근무에서 뺀다
+  work: { enabled: false, state: 'login', lunchStart: '12:00', lunchMin: 60 }, // flex 근무 시간 (하루 한 번 화면에서 읽음), 점심시간은 근무에서 뺀다
   quick: { hotkey: 'Control+Alt+M', userSet: false }, // 빠른 입력 단축키 ('' 이면 끔)
   todos: [],
   memos: [], // { id, title, body, color, createdAt, updatedAt }
   autoStart: false,
+  // 처음 설정(온보딩): 정말 처음 설치한 경우에만 done=false 로 시작한다
+  onboarding: { done: false, step: 0, skipped: [] },
 };
 
 // 비밀값 위치: weather 는 예전 위치(weather.keyEnc)를 유지하고, 나머지는 secrets 아래에 둔다
@@ -90,7 +92,10 @@ const bakFile = () => `${file()}.bak`;
 // 금고: 같은 폴더 + Local 쪽 사본 (Roaming 폴더가 통째로 문제여도 키는 남는다)
 const vaultFiles = () => [
   path.join(dirOf(), 'vault.json'),
-  path.join(process.env.LOCALAPPDATA || path.join(dirOf(), '..'), 'Yusk Widget', 'vault.json'),
+  // 개발용 별도 데이터 폴더(WIDGET_USERDATA)로 띄운 테스트 창은 실제 금고를 절대 보지도 쓰지도 않는다
+  process.env.WIDGET_USERDATA && !app.isPackaged
+    ? path.join(dirOf(), 'vault-local.json')
+    : path.join(process.env.LOCALAPPDATA || path.join(dirOf(), '..'), 'Yusk Widget', 'vault.json'),
 ];
 
 let log = () => {};
@@ -220,6 +225,9 @@ function load() {
     try { fs.copyFileSync(file(), path.join(dirOf(), `config.unreadable-${Date.now()}.json`)); } catch { /* 무시 */ }
   }
   data = merge(DEFAULTS, raw || {});
+  // 이미 쓰던 설정이 있으면(파일·백업에서 읽음) 온보딩을 끝낸 것으로 본다 → 기존 사용자에게는 절대 뜨지 않는다
+  const migrated = !!raw && !raw.onboarding;
+  if (migrated) data.onboarding = { done: true, step: 8, skipped: [], migrated: true };
   // 금고에만 남아 있는 키는 되살리고, 설정에만 있는 키는 금고에 넣는다
   const vault = readVault();
   let healed = false;
@@ -227,7 +235,7 @@ function load() {
     if (!getField(data, s) && vault[s]) { setField(data, s, vault[s]); healed = true; log('secret-restored', { section: s, from: 'vault' }); }
   }
   log('config-loaded', { from: loadedFrom || 'defaults', keys: SECTIONS.filter((s) => getField(data, s)) });
-  if (raw && (loadedFrom !== 'config' || healed)) flush();
+  if (raw && (loadedFrom !== 'config' || healed || migrated)) flush();
   else writeVault(data);
   return data;
 }
@@ -272,6 +280,7 @@ function publicConfig() {
 function replace(next) {
   const prev = get();
   data = keepSecrets(merge(DEFAULTS, next || {}), prev);
+  if (!next?.onboarding) data.onboarding = { done: true, step: 8, skipped: [], restored: true };
   flush();
   return data;
 }

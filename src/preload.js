@@ -72,4 +72,13 @@ contextBridge.exposeInMainWorld('widget', {
     onChanged: (fn) => ipcRenderer.on('flex-changed', (_e, w) => fn(w)),
   },
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
+  onb: {
+    state: () => ipcRenderer.invoke('onb:state'),
+    save: (patch) => ipcRenderer.invoke('onb:save', patch),
+    place: (displayId, corner) => ipcRenderer.invoke('onb:place', displayId, corner),
+    showWidget: () => ipcRenderer.invoke('onb:show-widget'),
+    weatherTest: (key) => ipcRenderer.invoke('onb:weather-test', key),
+    finish: (skipped) => ipcRenderer.invoke('onb:finish', skipped),
+    open: (step) => ipcRenderer.invoke('onb:open', step),
+  },
 });

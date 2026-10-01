@@ -266,3 +266,6 @@
 .lunch-row { display: inline-flex; gap: 6px; }
 .lunch-row .field { width: auto; }
 .wk-bar.paused i { opacity: .45; }
+/* 처음 설정에서 남은 항목이 있으면 ⋯ 버튼에 점 */
+#btn-clock-menu { position: relative; }
+#btn-clock-menu.has-dot::after { content: ''; position: absolute; top: 3px; right: 3px; width: 7px; height: 7px; border-radius: 50%; background: var(--warn); }
