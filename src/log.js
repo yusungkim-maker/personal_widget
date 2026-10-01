@@ -21,6 +21,12 @@ function install() {
     version: app.getVersion(), packaged: app.isPackaged, pid: process.pid,
     autostart: process.argv.includes('--autostart'), uptimeSec: Math.round(require('os').uptime()),
   });
+  // 꺼진 이유를 알 수 있게 Windows 종료·로그오프·절전·잠금도 남긴다
+  app.on('session-end', () => log('session-end'));
+  app.whenReady().then(() => {
+    const { powerMonitor } = require('electron');
+    for (const ev of ['shutdown', 'suspend', 'resume', 'lock-screen', 'unlock-screen']) powerMonitor.on(ev, () => log(`power-${ev}`));
+  });
   process.on('uncaughtException', (e) => log('uncaughtException', { message: e.message, stack: String(e.stack).split('\n').slice(0, 4).join(' | ') }));
   process.on('unhandledRejection', (e) => log('unhandledRejection', { message: String(e?.message || e) }));
   app.on('render-process-gone', (_e, _wc, d) => log('render-process-gone', d));

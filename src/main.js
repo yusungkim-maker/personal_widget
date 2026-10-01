@@ -122,6 +122,11 @@ function createWindow() {
   });
 
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+  // 화면(렌더러)이 죽으면 1초 뒤 다시 불러온다
+  win.webContents.on('render-process-gone', (_e, d) => {
+    log('widget-renderer-gone', { reason: d.reason });
+    setTimeout(() => { if (win && !win.isDestroyed()) win.reload(); }, 1000);
+  });
   win.webContents.on('did-finish-load', () => win.webContents.setZoomFactor(cfg().window.zoom));
 
   win.once('ready-to-show', () => {
