@@ -32,6 +32,7 @@ contextBridge.exposeInMainWorld('widget', {
   weatherNationwide: (force) => ipcRenderer.invoke('weather:nationwide', force),
   searchPlace: (q) => ipcRenderer.invoke('weather:search', q),
   locate: () => ipcRenderer.invoke('weather:locate'),
+  resolveImage: (url) => ipcRenderer.invoke('image:resolve', url),
   weatherAir: () => ipcRenderer.invoke('weather:air'),
   weatherWarnings: () => ipcRenderer.invoke('weather:warnings'),
   weatherAirStatus: () => ipcRenderer.invoke('weather:air-status'),

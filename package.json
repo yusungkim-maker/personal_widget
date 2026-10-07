@@ -1,11 +1,11 @@
 {
   "name": "yusk-widget",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "description": "개인용 Windows 바탕화면 위젯 (시계·날씨·달력·할 일·AI)",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
-    "test": "node --test test/llm.test.js test/nlparse.test.js test/gcal.test.js test/air.test.js test/flex.test.js test/weather.test.js test/store.test.js",
+    "test": "node --test test/llm.test.js test/nlparse.test.js test/gcal.test.js test/air.test.js test/flex.test.js test/weather.test.js test/store.test.js test/imagefind.test.js",
     "dist": "electron-builder --win nsis"
   },
   "author": "yusungkim",

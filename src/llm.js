@@ -303,6 +303,16 @@ const BASE_INSTRUCTIONS = [
   '파일을 읽거나 명령을 실행하지 말고 대화로만 답하세요.',
 ].join('\n');
 
+// 이미지 찾기: 위젯이 ![설명](주소) 를 대화창에 그림으로 보여 준다 (웹페이지 주소면 그 페이지의 대표 이미지를 찾아서)
+const IMAGES = [
+  '사용자가 사진·이미지·그림을 찾아 달라고 하면 웹 검색으로 찾아, 답변에 아래 형식으로 최대 3개를 넣으세요.',
+  '![짧은 설명](https://주소)',
+  '- 주소는 이미지 파일 주소(.jpg .png .webp 등)가 가장 좋고, 모르면 그 이미지가 실린 웹페이지 주소를 넣어도 됩니다. 위젯이 그 페이지의 대표 이미지를 찾아 보여 줍니다.',
+  '- 검색 결과에서 실제로 확인한 주소만 쓰고, 주소를 지어내지 마세요. https 주소만 씁니다.',
+  '- 각 이미지 바로 아래 줄에 출처를 [사이트 이름](페이지 주소) 링크로 적습니다.',
+  '- 사용자가 이미지를 원하지 않으면 이미지를 넣지 마세요.',
+].join('\n');
+
 // 설정 → AI 비서의 성격·지침. 매 대화에 자동으로 붙는다.
 const PERSONA_LIMIT = 2000;
 const PRESETS = {
@@ -370,6 +380,7 @@ function systemText(persona = {}) {
   if (clip(persona.about)) parts.push('', '[사용자에 대해]', clip(persona.about));
   if (clip(persona.rules)) parts.push('', '[항상 지킬 지침]', clip(persona.rules));
   if (persona.catTone) parts.push('', '[말투]', CAT_TONE);
+  parts.push('', '[이미지 찾기]', IMAGES);
   parts.push('', '[일정·할 일 등록]', ACTIONS);
   return parts.join('\n');
 }

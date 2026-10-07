@@ -507,6 +507,8 @@ let streamingText = '';
 function md(text) {
   const inline = (s) => esc(s)
     .replace(/`([^`]+)`/g, '<code>$1</code>')
+    // 이미지: ![설명](https://…) → 그림 자리 (images.js 가 실제 이미지를 찾아 채운다)
+    .replace(/!\[([^\]]*)\]\((https:\/\/[^\s)]+)\)/g, '<span class="img-card" data-src="$2" data-alt="$1"><span class="img-wait">이미지 찾는 중…</span></span>')
     .replace(/\[([^\]]+)\]\((https:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
     .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
   const out = [];

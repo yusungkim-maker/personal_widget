@@ -399,6 +399,7 @@ ipcMain.handle('weather:warnings', () => air.fetchWarnings(store.getSecret('weat
 ipcMain.handle('weather:air-status', () => air.status());
 ipcMain.handle('weather:air-recheck', () => air.resetBlocks());
 ipcMain.handle('weather:search', (_e, q) => weather.searchCity(q));
+ipcMain.handle('image:resolve', (_e, url) => require('./imagefind').resolveImage(String(url || '')));
 ipcMain.handle('weather:locate', async () => {
   try { return { ok: true, ...(await require('./locate').locate()) }; } catch (e) { return { ok: false, error: e.message }; }
 });
