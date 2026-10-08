@@ -525,8 +525,12 @@ $('#todo-form').addEventListener('keydown', (e) => {
     document.activeElement?.blur();
     setTodoOpen(false);
   }
-  // 링크 칸에서 Enter 도 바로 추가
-  if (e.key === 'Enter' && e.target.id === 'todo-link') { e.preventDefault(); $('#todo-form').requestSubmit(); }
+  // Enter = 추가 (제목 칸·링크 칸 모두). 입력칸이 둘 이상이라 브라우저가 Enter 로 저절로 제출하지 않는다.
+  // 한글을 조합하는 중의 Enter 는 글자 확정용이라 건너뛴다 (두 번 등록되지 않게)
+  if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229 && (e.target.id === 'todo-input' || e.target.id === 'todo-link')) {
+    e.preventDefault();
+    $('#todo-form').requestSubmit();
+  }
 });
 $('#todo-input').addEventListener('input', () => {
   if (!$('#todo-input').value.trim()) todoIgnoreParse = false;

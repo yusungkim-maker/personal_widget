@@ -1,6 +1,6 @@
 {
   "name": "yusk-widget",
-  "version": "1.4.3",
+  "version": "1.4.4",
   "description": "개인용 Windows 바탕화면 위젯 (시계·날씨·달력·할 일·AI)",
   "main": "src/main.js",
   "scripts": {
