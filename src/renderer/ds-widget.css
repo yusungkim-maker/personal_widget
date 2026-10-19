@@ -276,3 +276,8 @@
 .img-card .img-link { display: block; border-radius: var(--radius-md); overflow: hidden; background: var(--surface-inset); }
 .img-card img { display: block; width: 100%; max-height: 200px; object-fit: cover; }
 .img-card .img-cap { display: block; margin-top: 4px; font-size: 11px; color: var(--ink-3); }
+
+/* 설정: AI 비서 프로필 사진 바꾸기 */
+.avatar-edit { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.avatar-edit .avatar-btns { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; }
+.avatar-edit .link { font-size: 11px; }

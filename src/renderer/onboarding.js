@@ -11,6 +11,14 @@ const MODES = { desktop: ['바탕화면에 고정', '다른 창 뒤에 머물고
 const SECTIONS = [['clock', '시계·날짜'], ['weather', '날씨'], ['calendar', '달력·일정'], ['todo', '할 일'], ['memo', '메모'], ['ai', 'AI 비서']];
 const PRESET_LABEL = { pro: '전문 비서', friendly: '친근한 동료', concise: '짧고 간결하게', custom: '직접 쓰기' };
 
+// 공공데이터포털에서 서비스 이름으로 바로 찾기 (활용 신청 버튼이 있는 화면으로)
+const DATA_GO = (kw) => `https://www.data.go.kr/tcs/dss/selectDataSetList.do?keyword=${encodeURIComponent(kw)}`;
+const EXTRA_APIS = [
+  ['에어코리아 대기오염정보', '미세먼지 실측값'],
+  ['에어코리아 측정소정보', '가까운 측정소 찾기 (실측값에 함께 필요)'],
+  ['기상청 기상특보 조회서비스', '호우·폭염 등 특보 표시'],
+];
+
 const ICON = {
   check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
   plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
@@ -124,12 +132,16 @@ const VIEW = {
         <button class="opt ${src === 'kma' ? 'on' : ''}" data-src="kma"><span class="dot"></span><span><div class="t">기상청 · 더 정확해요</div><div class="s">공공데이터포털 인증키가 필요해요 (무료)</div></span></button>
         ${src === 'kma' ? `<div class="opt-body">
           ${config.weather.hasKey ? okLine('기상청 인증키가 저장돼 있어요. 바꾸려면 새 키를 넣고 확인을 눌러요.') : `<ol class="ob-note" style="margin:0;padding-left:18px;font-size:11.5px;line-height:18px;color:var(--ink-2)">
-            <li><a href="#" data-link="https://www.data.go.kr">공공데이터포털</a>에 로그인</li>
-            <li>“기상청_단기예보 조회서비스” 활용 신청 (보통 바로 승인)</li>
-            <li>마이페이지의 일반 인증키(Decoding)를 붙여 넣기</li></ol>`}
+            <li><a href="#" data-link="${DATA_GO('기상청_단기예보 조회서비스')}">기상청_단기예보 조회서비스</a>를 열어 로그인 → <b>활용신청</b> (보통 바로 승인)</li>
+            <li>마이페이지 → 데이터 활용 → Open API → <a href="#" data-link="https://www.data.go.kr/iim/api/selectAcountList.do">활용신청 현황</a>에서 <b>일반 인증키(Decoding)</b> 복사</li>
+            <li>아래 칸에 붙여 넣고 [연결 확인]</li></ol>`}
           <div class="row2"><input class="in" type="password" id="kma-key" placeholder="일반 인증키 붙여 넣기" autocomplete="off"><button class="b pri" id="kma-test" style="padding:0 14px">연결 확인</button></div>
           <div id="kma-res">${ui.keyResult || ''}</div>
-          <div class="ob-note">같은 키로 에어코리아(미세먼지 실측)와 기상특보도 신청하면 함께 보여요.</div>
+          <div class="ob-sec" style="gap:6px;margin-top:4px">
+            <span class="ob-label">선택 · 같은 키로 더 쓰기 (각각 활용신청만 하면 돼요)</span>
+            <div class="ob-panel">${EXTRA_APIS.map(([kw, what]) => `<div class="ob-row" style="min-height:36px"><span class="grow"><b style="font-weight:600;font-size:12.5px">${kw}</b><span class="sub">${what}</span></span><button class="b sm" data-link="${DATA_GO(kw)}">신청하기</button></div>`).join('')}</div>
+            <div class="row2" style="align-items:center"><button class="b sm" id="air-recheck" ${ui.airChecking ? 'disabled' : ''}>${ui.airChecking ? '확인 중…' : '신청했어요 · 다시 확인'}</button><span class="ob-note" style="flex:1">${ui.airResult || '신청하지 않아도 미세먼지는 예측값으로 보여요.'}</span></div>
+          </div>
         </div>` : ''}
       </div>`;
   },
@@ -182,7 +194,9 @@ const VIEW = {
       <p class="ob-lead">API 키 없이 계정 로그인으로 동작해요. ChatGPT는 계정만 있으면 되고, Claude는 Claude Code 설치와 Pro 이상 구독이 필요해요.</p>
       <div class="ob-panel">${row('claude', 'Claude Code', 'Claude로 로그인')}${row('codex', 'ChatGPT (Codex)', 'ChatGPT로 로그인')}</div>
       <div class="place-row" style="align-items:flex-end">
-        <div class="ob-sec"><span class="ob-label">프로필</span><div class="avs"><span class="av"><img src="../assets/mungchi-cat.svg" alt="고양이 프로필"></span></div></div>
+        <div class="ob-sec"><span class="ob-label">프로필</span><div class="avs"><span class="av"><img src="${esc(config.ai.avatar || '../assets/mungchi-cat.svg')}" alt="프로필 사진"></span>
+          <button class="av-add" id="ai-photo" title="내 사진으로 바꾸기" aria-label="내 사진으로 바꾸기">${ICON.plus}</button>
+          ${config.ai.avatar ? '<button class="b sm" id="ai-photo-reset" style="align-self:center">기본</button>' : ''}</div></div>
         <label class="ob-sec" style="flex:1"><span class="ob-label">이름</span><input class="in" id="ai-name" value="${esc(a.name)}" maxlength="12" style="height:44px"></label>
       </div>
       <div class="ob-sec"><span class="ob-label">성격</span>
@@ -434,6 +448,16 @@ const BIND = {
       await patch({ weather: { source: b.dataset.src === 'basic' ? 'basic' : 'kma' } });
       render();
     }));
+    $('#air-recheck')?.addEventListener('click', async () => {
+      ui.airChecking = true; render();
+      try {
+        await widget.weatherAirRecheck();
+        const [air, warn] = await Promise.all([widget.weatherAir(), widget.weatherWarnings()]);
+        const measured = (air || []).some((a) => a.ok && a.source && a.source !== 'model');
+        ui.airResult = `미세먼지 실측 ${measured ? '✓ 연결됨' : '아직 안 됨'} · 기상특보 ${warn?.available ? '✓ 연결됨' : '아직 안 됨'}${measured && warn?.available ? '' : ' (승인 직후엔 몇 분 걸릴 수 있어요)'}`;
+      } catch { ui.airResult = '확인하지 못했어요. 잠시 뒤 다시 눌러 주세요.'; }
+      ui.airChecking = false; render();
+    });
     $('#kma-test')?.addEventListener('click', async () => {
       const key = $('#kma-key').value.trim();
       $('#kma-res').innerHTML = '<div class="result wait">기상청에서 날씨를 받아 보는 중…</div>';
@@ -503,6 +527,14 @@ const BIND = {
       render();
     }));
     $('#ai-name').addEventListener('change', (e) => patch({ ai: { name: e.target.value.trim() || '뭉치' } }));
+    $('#ai-photo').addEventListener('click', async () => {
+      const r = await pickAvatarImage();
+      if (!r) return;
+      if (r.error) { alert(r.error); return; }
+      await patch({ ai: { avatar: r.src } });
+      render();
+    });
+    $('#ai-photo-reset')?.addEventListener('click', async () => { await patch({ ai: { avatar: '' } }); render(); });
     $$('[data-preset]').forEach((b) => b.addEventListener('click', async () => { await patch({ ai: { personaPreset: b.dataset.preset } }); render(); }));
     $('#ai-persona')?.addEventListener('change', (e) => patch({ ai: { persona: e.target.value } }));
     onSwitch('s-cat', (on) => patch({ ai: { catTone: on } }));

@@ -135,3 +135,9 @@ textarea.in { height: 72px; padding: 8px 12px; resize: none; line-height: 18px; 
 /* 패널 안 버튼은 패널과 다른 바탕으로 (글자처럼 보이지 않게) */
 .ob-panel .b { background: rgb(var(--surface-rgb)); border: 1px solid var(--line); }
 .ob-panel .b + .b { margin-left: 4px; }
+
+.av-add { width: 44px; height: 44px; border-radius: 50%; border: 1px dashed var(--line-strong); background: #242834; color: var(--ink-2); display: grid; place-items: center; cursor: pointer; padding: 0; }
+.av-add svg { width: 16px; height: 16px; }
+.av-add:hover { color: var(--ink); border-color: var(--accent); }
+
+.ob-body a { color: var(--accent); text-underline-offset: 2px; }

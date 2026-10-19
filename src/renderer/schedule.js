@@ -24,7 +24,17 @@ async function connectGoogle() {
   gcalState.connecting = true;
   renderGcalSettings();
   const r = await widget.gcal.connect();
-  await // ───────────────────────── 빠른 입력(전역 단축키)에서 넘어온 작업 ─────────────────────────
+  await refreshGcal();
+  if (r.ok) {
+    toast(`구글 캘린더가 연결됐어요 · ${gcalState.email}`);
+    loadCalendar(true);
+  } else {
+    toast(r.error, null, 'err');
+  }
+  return r.ok;
+}
+
+// ───────────────────────── 빠른 입력(전역 단축키)에서 넘어온 작업 ─────────────────────────
 
 widget.quick.onAction((kind, payload) => {
   if (kind === 'todo') addTodo(payload.text, payload.date, payload.url);
@@ -63,16 +73,6 @@ $('#set-hotkey').addEventListener('change', async (e) => {
   config.quick = { hotkey: e.target.value };
   renderHotkeySettings(await widget.quick.setHotkey(e.target.value));
 });
-
-refreshGcal();
-  if (r.ok) {
-    toast(`구글 캘린더가 연결됐어요 · ${gcalState.email}`);
-    loadCalendar(true);
-  } else {
-    toast(r.error, null, 'err');
-  }
-  return r.ok;
-}
 
 // ───────────────────────── 알림(토스트) ─────────────────────────
 

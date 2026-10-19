@@ -8,6 +8,7 @@ const ICONS = {
 };
 const MODES = ['event', 'todo', 'memo', 'ask'];
 const LABEL = { event: '일정', todo: '할 일', memo: '메모', ask: '뭉치에게' };
+let aiNameQ = '뭉치';
 
 let manualMode = null;
 let busy = false;
@@ -18,6 +19,8 @@ function split(text) {
     [/^(메모)\s*[:：]?\s+/, 'memo'], [/^(할\s*일|todo)\s*[:：]?\s+/i, 'todo'],
     [/^(일정)\s*[:：]?\s+/, 'event'], [/^[?？]\s*/, 'ask'], [/^뭉치[야아]?[,\s]+/, 'ask'],
   ];
+  // 이름을 바꿨으면 "새이름아, …" 로 불러도 AI 비서에게 묻는다
+  if (aiNameQ !== '뭉치') rules.push([new RegExp(`^${aiNameQ.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[야아]?[,\\s]+`), 'ask']);
   for (const [re, mode] of rules) if (re.test(text)) return { mode, body: text.replace(re, '').trim() };
   return { mode: null, body: text.trim() };
 }
@@ -62,7 +65,7 @@ function render() {
   } else if (mode === 'memo') {
     p.innerHTML = `<b>${esc(body.split('\n')[0].slice(0, 60))}</b> → 새 메모`;
   } else {
-    p.innerHTML = '뭉치에게 물어볼게요. 위젯에서 답이 나와요.';
+    p.textContent = `${aiNameQ}에게 물어볼게요. 위젯에서 답이 나와요.`;
   }
 }
 
@@ -147,6 +150,14 @@ widget.quick.onOpen(async () => {
   render();
   $('#q-input').focus();
   const c = await widget.getConfig();
+  // AI 비서 이름·사진을 설정에 맞춘다
+  aiNameQ = (c.ai.name || '').trim() || '뭉치';
+  LABEL.ask = `${aiNameQ}에게`;
+  window.aiAvatarSrc = c.ai.avatar || '';
+  const askBtn = document.querySelector('[data-m="ask"]');
+  if (askBtn) askBtn.textContent = aiNameQ;
+  $('#q-input').placeholder = `내일 3시 치과 · 금요일까지 보고서 · 메모 … · ? ${aiNameQ}에게 질문`;
+  render();
   document.documentElement.dataset.theme = c.appearance.theme;
   document.documentElement.style.setProperty('--accent', c.appearance.accent);
 });

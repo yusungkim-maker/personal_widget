@@ -18,7 +18,7 @@ function dataReady() {
 async function runBrief({ manual = false } = {}) {
   if (briefRunning || streamingEl) return false;
   if (!aiStatus?.claude?.loggedIn && !aiStatus?.codex?.loggedIn) {
-    if (manual) toast('뭉치가 로그인되어 있지 않아요. 설정 → AI 비서에서 로그인해 주세요', null, 'err');
+    if (manual) toast(`${aiName()}가 로그인되어 있지 않아요. 설정 → AI 비서에서 로그인해 주세요`, null, 'err');
     return false;
   }
   briefRunning = true;

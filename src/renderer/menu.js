@@ -89,7 +89,7 @@ $('#ai-menu-btn').addEventListener('click', (e) => {
     for (const o of g.querySelectorAll('option')) items.push({ label: o.textContent, checked: o.value === sel.value, onClick: () => { sel.value = o.value; applyModel(o.value); aiModelLabel(); } });
   }
   if (!items.length) items.push({ label: '로그인이 필요해요 · 설정 열기', onClick: () => openSettings() });
-  items.push({ sep: true }, { label: '새 대화', onClick: () => $('#ai-reset').click() });
+  items.push({ sep: true }, { label: '새 대화', onClick: () => $('#ai-reset').click() }, { label: '이름·사진 바꾸기', onClick: () => openAiProfileSettings() });
   openMenu(e.currentTarget, items);
 });
 {

@@ -549,6 +549,7 @@ const aiName = () => (config.ai.name || '').trim() || '뭉치';
 
 function renderAiProfile() {
   $('#ai-avatar').innerHTML = catAvatar(30);
+  refreshAvatars();
   $('#ai-name').textContent = aiName();
   const log = $('#ai-log');
   if (!log.children.length || log.querySelector('.ai-hello')) {
@@ -822,6 +823,7 @@ async function fillPersona() {
   const preset = a.persona ? 'custom' : a.personaPreset || 'pro';
   $('#set-cat-tone').checked = !!a.catTone;
   $('#set-avatar').innerHTML = catAvatar(48);
+  $('#set-avatar-reset').hidden = !config.ai.avatar;
   if (document.activeElement?.id !== 'set-ai-name') $('#set-ai-name').value = a.name || '';
   setSeg('set-preset', preset);
   $('#set-persona').value = a.persona || presets[preset] || presets.pro;
@@ -867,6 +869,23 @@ $('#set-cat-tone').addEventListener('change', (e) => {
   renderAiProfile();
   savePersona({ catTone: e.target.checked });
 });
+// 프로필 사진: 내 사진으로 바꾸기 / 기본 고양이로 되돌리기
+async function setAvatar(src) {
+  config.ai.avatar = src;
+  await widget.updateConfig({ ai: { avatar: src } });
+  $('#set-avatar').innerHTML = catAvatar(48);
+  $('#set-avatar-reset').hidden = !src;
+  renderAiProfile();
+}
+$('#set-avatar-pick').addEventListener('click', async () => {
+  const r = await pickAvatarImage();
+  if (!r) return;
+  if (r.error) return toast(r.error, null, 'err');
+  await setAvatar(r.src);
+  toast('프로필 사진을 바꿨어요');
+});
+$('#set-avatar-reset').addEventListener('click', () => setAvatar(''));
+
 $('#set-ai-name').addEventListener('input', () => {
   const name = $('#set-ai-name').value.trim();
   config.ai.name = name;
@@ -876,6 +895,15 @@ $('#set-ai-name').addEventListener('input', () => {
 });
 $('#set-about').addEventListener('input', () => { countPersona(); savePersona({ about: $('#set-about').value.trim() }); });
 $('#set-rules').addEventListener('input', () => { countPersona(); savePersona({ rules: $('#set-rules').value.trim() }); });
+
+// 이름·사진 칸으로 바로 가기 (뭉치 ⋯ 메뉴)
+function openAiProfileSettings() {
+  openSettings();
+  const el = $('#set-ai-name');
+  el.scrollIntoView({ block: 'center' });
+  el.focus();
+  el.select();
+}
 
 function openSettings() {
   $$('#app > section:not(#settings)').forEach((s) => { s.dataset.wasHidden = s.hidden ? '1' : ''; s.hidden = true; });
