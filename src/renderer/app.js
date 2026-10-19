@@ -18,7 +18,7 @@ function applyAppearance() {
   const [r, g, b] = [1, 3, 5].map((i) => parseInt(a.accent.slice(i, i + 2), 16));
   if ([r, g, b].every(Number.isFinite)) document.documentElement.style.setProperty('--accent-soft', `rgba(${r}, ${g}, ${b}, 0.16)`);
   document.documentElement.style.setProperty('--glass', a.glass);
-  document.body.classList.toggle('locked', config.window.locked || config.window.mode === 'desktop');
+  document.body.classList.toggle('locked', !!config.window.locked);
 
   const s = config.sections;
   $('#sec-weather').hidden = !s.weather;
@@ -26,6 +26,7 @@ function applyAppearance() {
   $('#sec-todo').hidden = !s.todo;
   $('#sec-ai').hidden = !s.ai;
   $('#sec-memo').hidden = s.memo === false;
+  if ($('#sec-typing')) $('#sec-typing').hidden = s.typing === false;
   renderModeButton();
 }
 
@@ -941,9 +942,7 @@ function fillSettings() {
   $('#v-glass').textContent = `${Math.round(a.glass * 100)}%`;
   $('#set-zoom').value = w.zoom;
   $('#v-zoom').textContent = `${Math.round(w.zoom * 100)}%`;
-  $('#set-locked').checked = w.locked || w.mode === 'desktop';
-  $('#set-locked').disabled = w.mode === 'desktop';
-  $('#locked-hint').hidden = w.mode !== 'desktop';
+  $('#set-locked').checked = !!w.locked;
   $('#set-autostart').checked = config.autoStart;
   $('#set-24h').checked = a.clock24h;
   $('#set-seconds').checked = a.showSeconds;

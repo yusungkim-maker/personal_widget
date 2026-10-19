@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:">
+  <title>뭉치위젯 타자 연습</title>
+  <link rel="stylesheet" href="typing.css">
+</head>
+<body>
+  <header class="tb">
+    <span class="logo"><img src="../assets/mungchi-cat.svg" alt="">뭉치<b>type</b></span>
+    <span class="drag"></span>
+    <button class="tb-btn" id="close" title="닫기 (Esc)" aria-label="닫기">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </header>
+
+  <nav class="config" id="config" aria-label="테스트 설정">
+    <div class="grp">
+      <button data-toggle="punctuation">@ 문장부호</button>
+      <button data-toggle="numbers"># 숫자</button>
+    </div>
+    <span class="bar"></span>
+    <div class="grp">
+      <button data-mode="time">⏱ 시간</button>
+      <button data-mode="words">A 단어</button>
+    </div>
+    <span class="bar"></span>
+    <div class="grp" id="amounts"></div>
+    <span class="bar"></span>
+    <div class="grp">
+      <button data-lang="english">english</button>
+      <button data-lang="korean">한국어</button>
+    </div>
+  </nav>
+
+  <main class="test" id="test">
+    <div class="live"><span id="counter"></span><span id="livewpm"></span></div>
+    <div class="words-wrap" id="wordsWrap">
+      <div class="words" id="words"></div>
+      <div class="caret" id="caret"></div>
+      <div class="blur" id="blur">여기를 누르거나 아무 키나 눌러 시작해요</div>
+    </div>
+    <input id="hid" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="타자 입력">
+    <button class="restart" id="restart" title="다시 시작 (Tab)" aria-label="다시 시작">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>
+    </button>
+  </main>
+
+  <section class="result" id="result" hidden>
+    <div class="res-top">
+      <div class="big">
+        <div class="stat"><span class="lbl">wpm</span><span class="val" id="r-wpm"></span></div>
+        <div class="stat"><span class="lbl">acc</span><span class="val" id="r-acc"></span></div>
+        <div class="pb" id="r-pb" hidden>👑 최고 기록</div>
+      </div>
+      <canvas id="chart" aria-label="초당 속도 그래프"></canvas>
+    </div>
+    <div class="more">
+      <div class="stat sm"><span class="lbl">test type</span><span class="val" id="r-type"></span></div>
+      <div class="stat sm"><span class="lbl">raw</span><span class="val" id="r-raw"></span></div>
+      <div class="stat sm"><span class="lbl">characters</span><span class="val" id="r-chars" title="맞음 / 틀림 / 남는 글자 / 빠진 글자"></span></div>
+      <div class="stat sm"><span class="lbl">consistency</span><span class="val" id="r-cons"></span></div>
+      <div class="stat sm"><span class="lbl">time</span><span class="val" id="r-time"></span></div>
+    </div>
+    <div class="actions">
+      <button id="next" title="다음 테스트 (Tab)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>다음
+      </button>
+      <button id="again" title="같은 단어로 다시">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>같은 단어로
+      </button>
+    </div>
+  </section>
+
+  <footer class="hint"><kbd>tab</kbd> 다시 시작 <span class="dot">·</span> <kbd>esc</kbd> 닫기</footer>
+
+  <script src="typing-words.js"></script>
+  <script src="typing.js"></script>
+</body>
+</html>

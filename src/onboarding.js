@@ -39,17 +39,7 @@ function displays() {
 
 // 고른 모니터의 모서리에 위젯을 둔다 (여백 24px)
 function place(displayId, corner) {
-  const win = deps.getWin();
-  if (!win || win.isDestroyed()) return null;
-  const d = screen.getAllDisplays().find((x) => x.id === displayId) || screen.getPrimaryDisplay();
-  const a = d.workArea;
-  const w = deps.widthPx();
-  const h = Math.min(deps.contentHeight(), a.height - 48);
-  const x = corner.endsWith('left') ? a.x + 24 : a.x + a.width - w - 24;
-  const y = corner.startsWith('top') ? a.y + 24 : a.y + a.height - h - 24;
-  win.setPosition(Math.round(x), Math.round(y));
-  store.update({ window: { x: Math.round(x), y: Math.round(y), displayId: d.id, corner } });
-  return { x, y };
+  return deps.snapTo({ displayId, corner }, true);
 }
 
 function register(d) {

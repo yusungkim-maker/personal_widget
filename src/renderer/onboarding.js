@@ -7,7 +7,7 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 const STEPS = ['welcome', 'place', 'cards', 'weather', 'calendar', 'ai', 'work', 'notify', 'done'];
 const ACCENTS = ['#b79cff', '#8ab4ff', '#6fd4c4', '#ffb35c', '#ff9ec7'];
 const CORNERS = { 'top-left': '왼쪽 위', 'top-right': '오른쪽 위', 'bottom-left': '왼쪽 아래', 'bottom-right': '오른쪽 아래' };
-const MODES = { desktop: ['바탕화면에 고정', '다른 창 뒤에 머물고 위치가 잠겨요'], normal: ['일반 창', '다른 창처럼 앞뒤로 움직여요'], top: ['항상 위에 표시', '모든 창 위에 떠 있어요'] };
+const MODES = { desktop: ['바탕화면에 고정', '다른 창 뒤, 바탕화면에 머물러요'], normal: ['일반 창', '다른 창처럼 앞뒤로 움직여요'], top: ['항상 위에 표시', '모든 창 위에 떠 있어요'] };
 const SECTIONS = [['clock', '시계·날짜'], ['weather', '날씨'], ['calendar', '달력·일정'], ['todo', '할 일'], ['memo', '메모'], ['ai', 'AI 비서']];
 const PRESET_LABEL = { pro: '전문 비서', friendly: '친근한 동료', concise: '짧고 간결하게', custom: '직접 쓰기' };
 

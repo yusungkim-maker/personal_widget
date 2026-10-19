@@ -281,3 +281,16 @@
 .avatar-edit { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .avatar-edit .avatar-btns { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; }
 .avatar-edit .link { font-size: 11px; }
+
+/* 타자 카드 (개인판) */
+.typing-body { display: flex; flex-direction: column; gap: 10px; }
+.ty-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.ty-tile { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: var(--radius-lg); background: var(--surface-inset); }
+.ty-l { font-size: 11px; font-weight: 600; letter-spacing: .04em; color: var(--ink-3); }
+.ty-v { font-size: 26px; line-height: 30px; font-weight: 300; color: var(--ink); }
+.ty-s { font-size: 11px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ty-start { height: 38px; border-radius: var(--radius-md); border: 0; background: var(--accent); color: var(--on-accent); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.ty-start span { font-weight: 500; opacity: .75; font-size: 12px; }
+
+/* 위치 잠금 버튼: 풀려 있으면 강조색 (끌 수 있다는 표시) */
+#btn-lock.unlocked { color: var(--accent); }

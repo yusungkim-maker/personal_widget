@@ -12,7 +12,9 @@
   padding: 10px;
 }
 
-body:not(.locked) .drag { -webkit-app-region: drag; }
+/* 끌기는 drag.js 가 직접 한다 (자석처럼 모서리에 붙이기) */
+body:not(.locked) .drag { cursor: grab; }
+body.dragging, body.dragging * { cursor: grabbing !important; }
 .drag button, .drag input, .drag a { -webkit-app-region: no-drag; }
 
 .card-h {

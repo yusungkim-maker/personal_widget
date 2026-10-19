@@ -1,7 +1,7 @@
 // 카드 접기(요약 한 줄) + 컴팩트 모드("오늘" 카드)
 // 기존 render 함수들을 감싸서, 내용이 바뀔 때마다 요약도 함께 갱신한다.
 
-const CARD_IDS = { weather: 'sec-weather', calendar: 'sec-calendar', todo: 'sec-todo', memo: 'sec-memo', ai: 'sec-ai' };
+const CARD_IDS = { weather: 'sec-weather', calendar: 'sec-calendar', todo: 'sec-todo', memo: 'sec-memo', typing: 'sec-typing', ai: 'sec-ai' };
 const ICON_COMPACT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h16M4 15h10"/></svg>';
 const ICON_EXPAND = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 10h16M4 14h16M4 18h10"/></svg>';
 

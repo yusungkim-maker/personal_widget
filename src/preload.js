@@ -8,6 +8,11 @@ contextBridge.exposeInMainWorld('widget', {
   onConfigChanged: (fn) => ipcRenderer.on('config-changed', (_e, c) => fn(c)),
   onOpenSettings: (fn) => ipcRenderer.on('open-settings', () => fn()),
   reportHeight: (h) => ipcRenderer.send('window:content-height', h),
+  drag: {
+    start: () => ipcRenderer.invoke('drag:start'),
+    move: (x, y) => ipcRenderer.send('drag:move', x, y),
+    end: (moved) => ipcRenderer.invoke('drag:end', moved),
+  },
   fetchCalendar: (from, to) => ipcRenderer.invoke('calendar:fetch', from, to),
   gcal: {
     status: () => ipcRenderer.invoke('gcal:status'),
@@ -74,6 +79,13 @@ contextBridge.exposeInMainWorld('widget', {
     onChanged: (fn) => ipcRenderer.on('flex-changed', (_e, w) => fn(w)),
   },
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
+  typing: {
+    open: () => ipcRenderer.invoke('typing:open'),
+    get: () => ipcRenderer.invoke('typing:get'),
+    settings: (patch) => ipcRenderer.invoke('typing:settings', patch),
+    result: (r) => ipcRenderer.invoke('typing:result', r),
+    onChanged: (fn) => ipcRenderer.on('typing-changed', (_e, t) => fn(t)),
+  },
   onb: {
     state: () => ipcRenderer.invoke('onb:state'),
     save: (patch) => ipcRenderer.invoke('onb:save', patch),

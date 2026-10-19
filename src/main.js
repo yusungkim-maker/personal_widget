@@ -12,6 +12,7 @@ const backup = require('./backup');
 const flex = require('./flex');
 const weather = require('./weather');
 const onboarding = require('./onboarding');
+const typing = require('./typing');
 
 const BASE_WIDTH = 360; // 디자인 시스템: 카드 여백 18px 를 넣어도 줄바꿈이 늘지 않는 폭
 const APP_NAME = 'YuskWidget';
@@ -88,6 +89,67 @@ function validPosition(x, y, width) {
   return onScreen ? { x, y } : defaultPosition(width);
 }
 
+// ── 모서리 자리 (개인판): 위젯은 모니터 네 모서리에만 붙는다 ──
+const SNAP_MARGIN = 12;
+let dragging = null;     // 끌고 있는 동안 { x, y } (시작 위치)
+let snapAnim = null;
+
+function displayById(id) {
+  return screen.getAllDisplays().find((d) => d.id === id) || screen.getPrimaryDisplay();
+}
+
+// 모서리 → 창 위치. 높이는 화면 안에 들어오게 줄인다.
+function snapPosition(snap, height) {
+  const d = displayById(snap?.displayId);
+  const a = d.workArea;
+  const w = widthPx();
+  const h = Math.min(height ?? (win ? win.getBounds().height : contentHeight), a.height - SNAP_MARGIN * 2);
+  const corner = snap?.corner || 'top-right';
+  return {
+    x: Math.round(corner.endsWith('left') ? a.x + SNAP_MARGIN : a.x + a.width - w - SNAP_MARGIN),
+    y: Math.round(corner.startsWith('bottom') ? a.y + a.height - h - SNAP_MARGIN : a.y + SNAP_MARGIN),
+    height: h, displayId: d.id, corner,
+  };
+}
+
+// 지금 위치에서 가장 가까운 모서리 (위젯이 화면 높이의 60%보다 길면 위쪽 모서리만)
+function nearestSnap(x, y) {
+  const w = widthPx(), h = win ? win.getBounds().height : contentHeight;
+  const c = { x: Math.round(x + w / 2), y: Math.round(y + Math.min(h, 240) / 2) };
+  const d = screen.getDisplayNearestPoint(c);
+  const a = d.workArea;
+  const side = c.x < a.x + a.width / 2 ? 'left' : 'right';
+  const tall = h > a.height * 0.6;
+  const vert = !tall && y + h / 2 > a.y + a.height / 2 ? 'bottom' : 'top';
+  return { displayId: d.id, corner: `${vert}-${side}` };
+}
+
+const savedSnap = () => {
+  const w = cfg().window;
+  if (w.corner && screen.getAllDisplays().some((d) => d.id === w.displayId)) return { displayId: w.displayId, corner: w.corner };
+  // 모서리를 정한 적 없거나 그 모니터가 없어졌으면 지금 위치에서 가장 가까운 모서리
+  const p = validPosition(w.x, w.y, widthPx());
+  return nearestSnap(p.x, p.y);
+};
+
+// 모서리로 옮기고 저장. animate 면 0.18초 동안 미끄러지듯
+function snapTo(snap, animate = false) {
+  if (!win || win.isDestroyed()) return null;
+  const p = snapPosition(snap);
+  store.update({ window: { x: p.x, y: p.y, displayId: p.displayId, corner: p.corner } });
+  clearInterval(snapAnim);
+  if (!animate) { win.setPosition(p.x, p.y); return p; }
+  const [sx, sy] = win.getPosition();
+  const t0 = Date.now(), dur = 180;
+  snapAnim = setInterval(() => {
+    if (!win || win.isDestroyed()) return clearInterval(snapAnim);
+    const k = Math.min(1, (Date.now() - t0) / dur), e = 1 - (1 - k) ** 3;
+    win.setPosition(Math.round(sx + (p.x - sx) * e), Math.round(sy + (p.y - sy) * e));
+    if (k >= 1) { clearInterval(snapAnim); resizeToContent(); }
+  }, 12);
+  return p;
+}
+
 function widthPx() {
   return Math.round(BASE_WIDTH * cfg().window.zoom);
 }
@@ -95,7 +157,7 @@ function widthPx() {
 function createWindow() {
   const w = cfg().window;
   const width = widthPx();
-  const pos = validPosition(w.x, w.y, width);
+  const pos = snapPosition(savedSnap(), Math.ceil(contentHeight * w.zoom));
 
   win = new BrowserWindow({
     x: pos.x,
@@ -136,10 +198,6 @@ function createWindow() {
     applyWindowSettings();
   });
 
-  win.on('moved', () => {
-    const [x, y] = win.getPosition();
-    store.update({ window: { x, y } });
-  });
 
   win.on('blur', () => {
     if (cfg().window.mode === 'desktop') win32.sendToBottom(win);
@@ -176,8 +234,8 @@ function applyWindowSettings() {
   const w = cfg().window;
   applyMode(w.mode);
   win.setOpacity(Math.min(1, Math.max(0.2, w.opacity)));
-  // 바탕화면에 고정하면 위치도 고정 (옮기려면 일반 창/항상 위로 바꿔서)
-  win.setMovable(!(w.locked || w.mode === 'desktop'));
+  // 창은 직접 끌기(자석)로만 옮긴다. 잠금은 ⋯ 옆 자물쇠 버튼(window.locked)
+  win.setMovable(false);
   win.setIgnoreMouseEvents(!!w.clickThrough, { forward: true });
   win.webContents.setZoomFactor(w.zoom);
   resizeToContent();
@@ -185,13 +243,11 @@ function applyWindowSettings() {
 }
 
 function resizeToContent() {
-  if (!win) return;
+  if (!win || dragging) return;
   const zoom = cfg().window.zoom;
-  const [x, y] = win.getPosition();
-  const wa = screen.getDisplayNearestPoint({ x, y }).workArea;
-  const maxH = wa.y + wa.height - y - 8;
-  const h = Math.max(120, Math.min(Math.ceil(contentHeight * zoom), maxH));
-  win.setBounds({ x, y, width: widthPx(), height: h });
+  const snap = savedSnap();
+  const p = snapPosition(snap, Math.max(120, Math.ceil(contentHeight * zoom)));
+  win.setBounds({ x: p.x, y: p.y, width: widthPx(), height: p.height });
 }
 
 // Windows 11 이 레지스트리 시작 항목을 건너뛰는 경우가 있어서, 설치판은 "시작 프로그램" 폴더 바로 가기도 함께 둔다.
@@ -295,9 +351,9 @@ function refreshTray() {
       label: '컴팩트 모드 (시계와 오늘만)', type: 'checkbox', checked: !!cfg().appearance.compact,
       click: (i) => { store.update({ appearance: { compact: i.checked } }); broadcastConfig(); },
     },
-    { label: w.mode === 'desktop' ? '위치 잠금 (바탕화면 고정 중)' : '위치 잠금', type: 'checkbox', checked: w.locked || w.mode === 'desktop', enabled: w.mode !== 'desktop', click: (i) => setWindow({ locked: i.checked }) },
+    { label: '위치 잠금', type: 'checkbox', checked: !!w.locked, click: (i) => setWindow({ locked: i.checked }) },
     { label: '클릭 통과 (마우스 무시)', type: 'checkbox', checked: w.clickThrough, click: (i) => setWindow({ clickThrough: i.checked }) },
-    { label: '위치 초기화', click: () => { const p = defaultPosition(widthPx()); win.setPosition(p.x, p.y); store.update({ window: p }); } },
+    { label: '위치 초기화 (주 모니터 오른쪽 위)', click: () => snapTo({ displayId: screen.getPrimaryDisplay().id, corner: 'top-right' }, true) },
     { type: 'separator' },
     {
       label: 'Windows 시작 시 자동 실행', type: 'checkbox', checked: cfg().autoStart,
@@ -327,6 +383,23 @@ function broadcastConfig() {
 // ───────────────────────── IPC ─────────────────────────
 
 ipcMain.handle('config:get', () => store.publicConfig());
+// 자석 끌기: 렌더러가 화면 좌표로 끌고, 놓으면 가장 가까운 모서리로 붙는다
+ipcMain.handle('drag:start', () => {
+  if (!win || cfg().window.locked) return null;
+  clearInterval(snapAnim);
+  const [x, y] = win.getPosition();
+  dragging = { x, y };
+  return dragging;
+});
+ipcMain.on('drag:move', (_e, x, y) => {
+  if (dragging && win && !win.isDestroyed() && Number.isFinite(x) && Number.isFinite(y)) win.setPosition(Math.round(x), Math.round(y));
+});
+ipcMain.handle('drag:end', (_e, moved) => {
+  if (!dragging || !win) return null;
+  dragging = null;
+  const [x, y] = win.getPosition();
+  return snapTo(moved ? nearestSnap(x, y) : savedSnap(), true);
+});
 // 날씨 자료: 기본(키 없이) 을 고르면 키가 있어도 쓰지 않는다 (키는 지우지 않고 그대로 둔다)
 const weatherKey = () => (cfg().weather.source === 'basic' ? null : store.getSecret('weather'));
 
@@ -437,8 +510,9 @@ app.whenReady().then(() => {
   if (process.env.KMA_SERVICE_KEY && !store.getSecret('weather')) {
     store.setSecret('weather', process.env.KMA_SERVICE_KEY);
   }
+  typing.register({ getWidget: () => win, icon: path.join(ASSETS, 'icon.png') });
   onboarding.register({
-    getWin: () => win, widthPx, contentHeight: () => contentHeight, applyWindowSettings, broadcastConfig, log,
+    getWin: () => win, widthPx, contentHeight: () => contentHeight, applyWindowSettings, broadcastConfig, log, snapTo,
     icon: path.join(ASSETS, 'icon.png'),
   });
   createWindow();
