@@ -6,6 +6,7 @@
   <title>뭉치위젯</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="widget.css">
+  <link rel="stylesheet" href="typing.css">
   <link rel="stylesheet" href="ds-widget.css">
 </head>
 <body>
@@ -159,7 +160,7 @@
       <section id="sec-typing" class="card">
         <header class="card-h drag">
           <button class="card-toggle" data-card="typing" title="접기/펼치기"><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg><h2>타자</h2></button>
-          <button class="icon-btn accent" id="typing-open" title="타자 연습 열기 (몽키타입 스타일)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><path d="M6 10h.01M9.5 10h.01M13 10h.01M16.5 10h.01M7 14h10"/></svg></button>
+          <button class="icon-btn accent" id="typing-open" title="크게 열기 (넓은 창에서 연습)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><path d="M6 10h.01M9.5 10h.01M13 10h.01M16.5 10h.01M7 14h10"/></svg></button>
         </header>
         <div class="card-sum" id="sum-typing"></div>
         <div class="typing-body" id="typing-body"></div>
@@ -401,6 +402,8 @@
   <div id="menu" class="menu" role="menu" hidden></div>
   <script src="menu.js"></script>
   <script src="images.js"></script>
+  <script src="typing-words.js"></script>
+  <script src="typing-engine.js"></script>
   <script src="typing-card.js"></script>
   <script src="drag.js"></script>
 </body>
