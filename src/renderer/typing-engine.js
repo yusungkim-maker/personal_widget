@@ -183,25 +183,27 @@
         ? (st.started ? Math.max(0, Math.round(cfg.time - sec)) : cfg.time)
         : `${st.wi}/${st.words.length}`;
     }
+    // 속도용 글자 수: 한글은 몽키타입처럼 자모(누른 키) 단위로 센다 ('간' = ㄱㅏㄴ 3타). 영어는 그대로 1글자 1타.
+    const klen = (s) => (window.TypingHangul ? TypingHangul.keySeq(s).length : s.length);
     // 글자 통계 (몽키타입과 같은 기준)
     function charStats() {
       let correctWordChars = 0, correct = 0, incorrect = 0, extra = 0, missed = 0, rawChars = 0;
       for (let i = 0; i < st.wi; i++) {
         const t = st.typed[i], w = st.words[i];
-        if (t === w) correctWordChars += w.length + 1;
-        rawChars += t.length + 1;
+        if (t === w) correctWordChars += klen(w) + 1;
+        rawChars += klen(t) + 1;
         for (let j = 0; j < Math.max(w.length, t.length); j++) {
           if (j >= w.length) extra++; else if (j >= t.length) missed++; else if (t[j] === w[j]) correct++; else incorrect++;
         }
       }
       // 치고 있던 마지막 단어: 맞게 친 앞부분만 속도에 넣고, 덜 친 글자는 빠진 글자로 세지 않는다
       const w = st.words[st.wi] || '', t = st.cur;
-      rawChars += t.length;
+      rawChars += klen(t);
       let prefixOk = true;
       for (let j = 0; j < t.length; j++) {
         if (j >= w.length) { extra++; prefixOk = false; } else if (t[j] === w[j]) correct++; else { incorrect++; prefixOk = false; }
       }
-      if (prefixOk) correctWordChars += t.length;
+      if (prefixOk) correctWordChars += klen(t);
       return { correctWordChars, correct, incorrect, extra, missed, rawChars };
     }
     const wpmSoFar = (sec) => (sec <= 0 ? 0 : (charStats().correctWordChars / 5) / (sec / 60));
@@ -218,7 +220,7 @@
       const w = st.words[st.wi] || '';
       for (let j = st.judged; j < settled; j++) {
         if (j < w.length && v[j] === w[j]) st.keys.correct++; else { st.keys.incorrect++; st.secErr++; }
-        st.secRaw++;
+        st.secRaw += klen(v[j]);
       }
       st.judged = settled;
       st.cur = v;
