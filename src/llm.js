@@ -23,8 +23,8 @@ const LIMITS = {
 
 // 사용자에게는 단계별 고정 문구만 보여 준다 (CLI 원본 출력은 노출하지 않는다)
 const MESSAGES = {
-  RUNTIME_CODEX: 'ChatGPT 실행 도구가 없거나 버전이 맞지 않아요. 위젯 폴더에서 npm install 을 다시 실행해 주세요.',
-  RUNTIME_CLAUDE: 'Claude Code 가 설치되어 있지 않아요. (claude.com/claude-code)',
+  RUNTIME_CODEX: 'ChatGPT 실행 도구를 찾지 못했어요. 뭉치위젯을 다시 설치해 주세요.',
+  RUNTIME_CLAUDE: 'Claude Code가 설치되어 있지 않아요. 설치 방법: code.claude.com/docs/ko/setup (Claude Pro 이상 구독 필요)',
   LOGIN_NONE: '로그인이 필요해요. 설정 → AI 비서에서 로그인해 주세요.',
   LOGIN_API_KEY: 'API 키 로그인이 감지되었어요. 구독 계정으로 다시 로그인해 주세요.',
   LOGIN_UNKNOWN: '로그인 상태를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.',

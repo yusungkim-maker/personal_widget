@@ -705,8 +705,8 @@ let aiStatus = null;
 let loginPoll = null;
 
 const PROVIDERS = {
-  claude: { name: 'Claude', logo: 'C', app: 'Claude Code', install: 'Claude Code 를 설치하면 로그인할 수 있어요 (claude.com/claude-code).' },
-  codex: { name: 'ChatGPT', logo: 'G', app: 'Codex', install: 'Codex 앱을 설치하면 ChatGPT 계정으로 로그인할 수 있어요 (openai.com/codex).' },
+  claude: { name: 'Claude', logo: 'C', app: 'Claude Code', install: 'Claude Code를 설치하면 로그인할 수 있어요 · Claude Pro 이상 구독 필요', setup: 'https://code.claude.com/docs/ko/setup' },
+  codex: { name: 'ChatGPT', logo: 'G', app: 'Codex', install: 'ChatGPT 실행 도구를 찾지 못했어요. 뭉치위젯을 다시 설치해 주세요.' },
 };
 
 async function loadAiStatus() {
@@ -732,6 +732,8 @@ function renderAccounts() {
     let sub = !s.installed ? p.install : busy ? '브라우저에서 로그인을 마쳐 주세요…' : s.account;
     if (accountNote[k] && !s.loggedIn && !busy) sub = accountNote[k];
     let btn = '';
+    // Claude Code 가 없으면: 공식 설치 안내 + 설치 후 다시 확인
+    if (!s.installed && p.setup) btn = `<button class="btn ghost" data-setup="${k}">설치 방법</button><button class="btn ghost" data-recheck="${k}">다시 확인</button>`;
     if (s.installed && !busy) {
       if (!s.loggedIn) btn = `<button class="btn" data-login="${k}">로그인</button>`;
       else if (k === 'codex') btn = `<button class="btn ghost" data-logout="${k}">로그아웃</button>`;
@@ -746,6 +748,9 @@ function renderAccounts() {
 }
 
 $('#ai-accounts').addEventListener('click', async (e) => {
+  const setup = e.target.closest('[data-setup]')?.dataset.setup;
+  if (setup) return widget.openExternal(PROVIDERS[setup].setup);
+  if (e.target.closest('[data-recheck]')) return loadAiStatus();
   const out = e.target.closest('[data-logout]')?.dataset.logout;
   if (out) {
     await widget.aiLogout(out);

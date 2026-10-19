@@ -131,3 +131,7 @@ textarea.in { height: 72px; padding: 8px 12px; resize: none; line-height: 18px; 
 :root[data-theme="light"] .b.pri { background: var(--accent); }
 :root[data-theme="light"] .opt.on, :root[data-theme="light"] .chip-b.on, :root[data-theme="light"] .mon.on { background-color: var(--accent-soft); }
 :root[data-theme="light"] .ob-prog span.on { background: var(--accent); }
+
+/* 패널 안 버튼은 패널과 다른 바탕으로 (글자처럼 보이지 않게) */
+.ob-panel .b { background: rgb(var(--surface-rgb)); border: 1px solid var(--line); }
+.ob-panel .b + .b { margin-left: 4px; }

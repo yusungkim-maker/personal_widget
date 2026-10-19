@@ -162,13 +162,24 @@ const VIEW = {
     const s = ui.ai || {};
     const row = (k, name, loginLabel) => {
       const v = s[k] || {};
-      return `<div class="ob-row" style="min-height:44px"><span class="st-dot ${v.loggedIn ? 'ok' : ''}"></span><span class="grow"><b style="font-weight:600">${name}</b><span class="sub">${v.loggedIn ? `로그인됨${v.account ? ` · ${esc(v.account)}` : ''}` : esc(v.account || (v.installed === false ? '설치되지 않았어요' : '로그인 전'))}</span></span>
-        ${v.loggedIn ? '<span class="tag ok">사용 가능</span>' : `<button class="b sm" data-login="${k}" ${ui.loginBusy ? 'disabled' : ''}>${ui.loginBusy === k ? '로그인 중…' : loginLabel}</button>`}</div>`;
+      const missing = v.installed === false;
+      // 상태 문구: 로그인됨 / 설치 안 됨(Claude 는 구독 안내) / 로그인 창 진행 중 / 로그인 전
+      const sub = v.loggedIn ? `로그인됨${v.account ? ` · ${esc(v.account)}` : ''}`
+        : missing ? (k === 'claude' ? 'Claude Code 설치와 Claude Pro 이상 구독이 필요해요' : 'ChatGPT 실행 도구를 찾지 못했어요. 뭉치위젯을 다시 설치해 주세요')
+        : ui.loginBusy === k ? (k === 'claude' ? '열린 창에서 로그인을 마치면 자동으로 확인해요' : '브라우저에서 로그인을 마쳐 주세요')
+        : esc(v.account || '로그인 전');
+      let act;
+      if (v.loggedIn) act = '<span class="tag ok">사용 가능</span>';
+      else if (missing && k === 'claude') act = '<button class="b sm" data-setup="claude">설치 방법</button><button class="b sm" data-recheck>다시 확인</button>';
+      else if (missing) act = '';
+      else if (ui.loginBusy === k) act = `<button class="b sm" disabled>로그인 중…</button>${k === 'claude' ? '<button class="b sm" data-recheck>다시 확인</button>' : ''}`;
+      else act = `<button class="b sm" data-login="${k}" ${ui.loginBusy ? 'disabled' : ''}>${loginLabel}</button>`;
+      return `<div class="ob-row" style="min-height:44px"><span class="st-dot ${v.loggedIn ? 'ok' : ''}"></span><span class="grow"><b style="font-weight:600">${name}</b><span class="sub">${sub}</span></span>${act}</div>`;
     };
     const a = config.ai;
     return `
       <h1>AI 비서를 쓸까요?</h1>
-      <p class="ob-lead">API 키 없이, 이미 쓰는 Claude나 ChatGPT 계정 로그인으로 동작해요.</p>
+      <p class="ob-lead">API 키 없이 계정 로그인으로 동작해요. ChatGPT는 계정만 있으면 되고, Claude는 Claude Code 설치와 Pro 이상 구독이 필요해요.</p>
       <div class="ob-panel">${row('claude', 'Claude Code', 'Claude로 로그인')}${row('codex', 'ChatGPT (Codex)', 'ChatGPT로 로그인')}</div>
       <div class="place-row" style="align-items:flex-end">
         <div class="ob-sec"><span class="ob-label">프로필</span><div class="avs"><span class="av"><img src="../assets/mungchi-cat.svg" alt="고양이 프로필"></span></div></div>
@@ -457,14 +468,38 @@ const BIND = {
     onSwitch('s-hol', (on) => patch({ calendar: { koreanHolidays: on } }));
   },
   ai() {
+    // 로그인되면 AI 카드를 켜고 그 계정을 쓴다
+    const useIfReady = async (p) => { if (ui.ai[p]?.loggedIn) await patch({ sections: { ai: true }, ai: { provider: p } }); };
+    $('[data-setup]')?.addEventListener('click', () => widget.openExternal('https://code.claude.com/docs/ko/setup'));
+    $$('[data-recheck]').forEach((b) => b.addEventListener('click', async () => {
+      b.disabled = true;
+      ui.ai = await widget.aiStatus();
+      if (ui.ai.claude?.loggedIn) { clearInterval(ui.loginPoll); ui.loginBusy = ''; await useIfReady('claude'); }
+      if (STEPS[step] === 'ai') render();
+    }));
     $$('[data-login]').forEach((b) => b.addEventListener('click', async () => {
-      ui.loginBusy = b.dataset.login; render();
-      try { await widget.aiLogin(b.dataset.login); } catch { /* 상태로 확인 */ }
+      const p = b.dataset.login;
+      ui.loginBusy = p; render();
+      let r = null;
+      try { r = await widget.aiLogin(p); } catch { /* 상태로 확인 */ }
+      if (p === 'claude' && r?.pending) {
+        // Claude 는 별도 콘솔 창에서 로그인한다 → 3초마다 최대 2분 확인
+        clearInterval(ui.loginPoll);
+        let n = 0;
+        ui.loginPoll = setInterval(async () => {
+          ui.ai = await widget.aiStatus();
+          if (ui.ai.claude?.loggedIn || ++n > 40) {
+            clearInterval(ui.loginPoll);
+            ui.loginBusy = '';
+            await useIfReady('claude');
+            if (STEPS[step] === 'ai') render();
+          }
+        }, 3000);
+        return;
+      }
       ui.ai = await widget.aiStatus();
       ui.loginBusy = '';
-      // 로그인되면 AI 카드를 켜고 그 계정을 쓴다
-      const p = b.dataset.login;
-      if (ui.ai[p]?.loggedIn) await patch({ sections: { ai: true }, ai: { provider: p } });
+      await useIfReady(p);
       render();
     }));
     $('#ai-name').addEventListener('change', (e) => patch({ ai: { name: e.target.value.trim() || '뭉치' } }));
