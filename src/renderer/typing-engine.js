@@ -98,8 +98,13 @@
       let html = '';
       for (let j = 0; j < Math.max(w.length, t.length); j++) {
         if (j >= w.length) { html += `<span class="letter extra">${escT(t[j])}</span>`; continue; }
-        let cls = '';
-        if (j < t.length) cls = isCur && st.composing && j === t.length - 1 ? 'composing' : t[j] === w[j] ? 'correct' : 'incorrect';
+        // 한글 조합 중인 글자는 친 그대로(ㄱ → 가 → 간) 보여 주고, 목표로 가는 중이 아니면 빨갛게
+        if (isCur && st.composing && j === t.length - 1) {
+          const ok = window.TypingHangul ? TypingHangul.composingOk(t[j], w.slice(j)) : t[j] === w[j];
+          html += `<span class="letter composing${ok ? '' : ' bad'}">${escT(t[j])}</span>`;
+          continue;
+        }
+        const cls = j < t.length ? (t[j] === w[j] ? 'correct' : 'incorrect') : '';
         html += `<span class="letter ${cls}">${escT(w[j])}</span>`;
       }
       const err = i < st.wi && t !== w;
@@ -147,7 +152,7 @@
       const gen = { capNext: true, prev: '' };
       const words = sameWords && lastWords.length ? [...lastWords] : makeWords(n, gen);
       lastWords = [...words];
-      st = { words, typed: [], cur: '', wi: 0, composing: false, gen, started: false, ended: false, start: 0, shift: 0, timer: null,
+      st = { words, typed: [], cur: '', judged: 0, base: 0, wi: 0, composing: false, gen, started: false, ended: false, start: 0, shift: 0, timer: null,
         keys: { correct: 0, incorrect: 0 }, secRaw: 0, secErr: 0, samples: [] };
       root.classList.remove('running');
       q('.mt-result').hidden = true;
@@ -204,20 +209,44 @@
     function setCurrent(v, composing) {
       if (st.ended) return;
       if (!st.started && v.length) startTest();
+      // 정확도: 글자가 확정될 때 한 번씩 센다 (조합 중인 마지막 글자는 아직 안 센다)
       const before = st.cur;
-      if (!composing && v.length > before.length) {
-        const w = st.words[st.wi] || '';
-        for (let j = before.length; j < v.length; j++) {
-          if (j < w.length && v[j] === w[j]) st.keys.correct++; else { st.keys.incorrect++; st.secErr++; }
-          st.secRaw++;
-        }
+      const settled = composing ? Math.max(0, v.length - 1) : v.length;
+      let common = 0;
+      while (common < before.length && common < v.length && before[common] === v[common]) common++;
+      st.judged = Math.min(st.judged, common, settled);
+      const w = st.words[st.wi] || '';
+      for (let j = st.judged; j < settled; j++) {
+        if (j < w.length && v[j] === w[j]) st.keys.correct++; else { st.keys.incorrect++; st.secErr++; }
+        st.secRaw++;
       }
+      st.judged = settled;
       st.cur = v;
       st.composing = !!composing;
       renderWord(st.wi);
       updateCaret();
       markTyping();
-      if (cfg.mode === 'words' && st.wi === st.words.length - 1 && !composing && v === st.words[st.wi]) commitWord();
+      if (cfg.mode === 'words' && st.wi === st.words.length - 1 && v === st.words[st.wi]) commitWord();
+    }
+    // 입력칸 값이 기준: 공백 앞까지가 끝난 단어, 나머지가 지금 치는 단어.
+    // 한글 조합 중에 입력칸을 비우면 IME가 글자를 다시 써 넣으므로, 비우지 않고 단어 시작 위치(base)만 옮긴다.
+    function sync() {
+      if (!st || st.ended) return;
+      let rest = hid.value.slice(st.base);
+      let sp;
+      while ((sp = rest.indexOf(' ')) !== -1) {
+        const word = rest.slice(0, sp);
+        st.base += sp + 1;
+        rest = rest.slice(sp + 1);
+        if (!word.length) continue; // 단어 시작에서 공백은 무시
+        setCurrent(word, false);
+        if (st.ended) return;
+        if (st.cur === word) commitWord(); // 마지막 단어가 맞으면 setCurrent 가 이미 넘겼다
+        if (st.ended) return;
+      }
+      if (rest !== st.cur || st.composing !== imeComposing) setCurrent(rest, imeComposing);
+      // 끝난 단어가 쌓이면 조합이 없을 때만 입력칸을 비운다
+      if (!imeComposing && !rest && st.base > 200 && st.base === hid.value.length) { hid.value = ''; st.base = 0; }
     }
     function commitWord() {
       const ok = st.cur === st.words[st.wi];
@@ -225,8 +254,8 @@
       st.secRaw++;
       st.typed[st.wi] = st.cur;
       st.cur = '';
+      st.judged = 0;
       st.composing = false;
-      hid.value = '';
       st.wi++;
       renderWord(st.wi - 1);
       if (cfg.mode === 'words' && st.wi >= st.words.length) { finish(); return; }
@@ -242,8 +271,10 @@
       if (st.typed[p] === st.words[p]) return;
       st.wi = p;
       st.cur = clear ? '' : st.typed[p];
+      st.judged = st.cur.length;
       st.typed.length = p;
       hid.value = st.cur;
+      st.base = 0;
       renderWord(p);
       renderWord(p + 1);
       updateCaret();
@@ -335,40 +366,21 @@
       root.classList.toggle('unfocused', document.activeElement !== hid);
     }
     const on = (el, ev, fn, o) => { el.addEventListener(ev, fn, o); };
-    on(hid, 'compositionstart', () => { st.composing = true; });
-    on(hid, 'compositionend', () => {
-      if (st.ended) return;
-      const v = hid.value.replace(/ .*$/, '');
-      const w = st.words[st.wi] || '';
-      const j = v.length - 1;
-      if (j >= 0) { if (j < w.length && v[j] === w[j]) st.keys.correct++; else { st.keys.incorrect++; st.secErr++; } st.secRaw++; }
-      st.composing = false;
-      st.cur = v;
-      renderWord(st.wi);
-      updateCaret();
-    });
-    on(hid, 'input', (e) => {
-      if (st.ended) return;
-      const v = hid.value;
-      if (v.includes(' ')) { // 한글 조합 확정 + 공백
-        const word = v.slice(0, v.indexOf(' '));
-        if (word !== st.cur) setCurrent(word, false);
-        if (st.cur.length) commitWord(); else hid.value = '';
-        return;
-      }
-      setCurrent(v, e.isComposing || st.composing);
-    });
+    // 한글 IME: 이벤트 순서는 환경마다 달라서, 어떤 이벤트가 오든 입력칸 값을 다시 읽어 맞춘다(sync)
+    let imeComposing = false;
+    on(hid, 'compositionstart', () => { imeComposing = true; });
+    on(hid, 'compositionend', () => { imeComposing = false; sync(); });
+    on(hid, 'input', (e) => { if (e.isComposing) imeComposing = true; sync(); });
     on(hid, 'keydown', (e) => {
       if (e.key === 'Tab') { e.preventDefault(); e.stopPropagation(); newTest(false); return; }
       if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); opts.onClose?.(); return; }
       if (st.ended) return;
-      const composing = e.isComposing || e.keyCode === 229;
-      if (e.key === ' ' && !composing) { e.preventDefault(); if (st.cur.length) commitWord(); return; }
+      const composing = imeComposing || e.isComposing || e.keyCode === 229;
       if (e.key === 'Backspace' && !composing) {
-        if (e.ctrlKey) { e.preventDefault(); if (st.cur.length) { hid.value = ''; setCurrent('', false); } else backWord(true); return; }
+        if (e.ctrlKey) { e.preventDefault(); if (st.cur.length) { hid.value = ''; st.base = 0; setCurrent('', false); } else backWord(true); return; }
         if (!st.cur.length) { e.preventDefault(); backWord(false); }
       }
-      if (e.key === 'Enter') e.preventDefault();
+      if (e.key === 'Enter' || /^(Arrow|Home$|End$|Page)/.test(e.key)) e.preventDefault(); // 입력칸 안에서 커서가 움직이면 안 된다
     });
     on(hid, 'blur', () => root.classList.add('unfocused'));
     on(hid, 'focus', () => root.classList.remove('unfocused'));

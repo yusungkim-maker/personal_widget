@@ -32,7 +32,8 @@
 .mt .letter.correct { color: var(--mt-text); }
 .mt .letter.incorrect { color: var(--mt-error); }
 .mt .letter.extra { color: var(--mt-error-extra); }
-.mt .letter.composing { color: var(--mt-text); opacity: .7; }
+.mt .letter.composing { color: var(--mt-text); box-shadow: inset 0 -2px 0 var(--mt-sub); }
+.mt .letter.composing.bad { color: var(--mt-error); box-shadow: inset 0 -2px 0 var(--mt-error); }
 .mt-caret { position: absolute; width: 3px; height: calc(var(--mt-fs) * 1.15); border-radius: 2px; background: var(--mt-caret); left: 0; top: 0; transition: left .1s linear, top .12s ease; }
 .mt:not(.running) .mt-caret, .mt-caret.idle { animation: mt-blink 1s step-end infinite; }
 @keyframes mt-blink { 50% { opacity: 0; } }
