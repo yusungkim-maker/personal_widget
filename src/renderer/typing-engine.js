@@ -369,13 +369,16 @@
     // 한글 IME: 이벤트 순서는 환경마다 달라서, 어떤 이벤트가 오든 입력칸 값을 다시 읽어 맞춘다(sync)
     let imeComposing = false;
     on(hid, 'compositionstart', () => { imeComposing = true; });
-    on(hid, 'compositionend', () => { imeComposing = false; sync(); });
-    on(hid, 'input', (e) => { if (e.isComposing) imeComposing = true; sync(); });
+    // 위젯 창에서는 글자가 확정될 때 입력칸 커서가 맨 앞으로 튀는 일이 있다 → 다음 글자가 앞에 끼어들지 않게 끝으로 되돌린다
+    const caretToEnd = () => { const n = hid.value.length; if (hid.selectionStart !== n || hid.selectionEnd !== n) hid.setSelectionRange(n, n); };
+    on(hid, 'compositionend', () => { imeComposing = false; caretToEnd(); sync(); });
+    on(hid, 'input', (e) => { if (e.isComposing) imeComposing = true; else caretToEnd(); sync(); });
     on(hid, 'keydown', (e) => {
       if (e.key === 'Tab') { e.preventDefault(); e.stopPropagation(); newTest(false); return; }
       if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); opts.onClose?.(); return; }
       if (st.ended) return;
       const composing = imeComposing || e.isComposing || e.keyCode === 229;
+      if (!imeComposing) caretToEnd(); // 새 글자를 치기 직전에도 커서를 끝에 둔다
       if (e.key === 'Backspace' && !composing) {
         if (e.ctrlKey) { e.preventDefault(); if (st.cur.length) { hid.value = ''; st.base = 0; setCurrent('', false); } else backWord(true); return; }
         if (!st.cur.length) { e.preventDefault(); backWord(false); }

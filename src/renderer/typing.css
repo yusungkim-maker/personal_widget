@@ -40,7 +40,8 @@
 .mt-blur { position: absolute; inset: 0; display: none; place-items: center; font-size: 15px; color: var(--mt-text); backdrop-filter: blur(4px); cursor: pointer; }
 .mt.unfocused .mt-blur { display: grid; }
 .mt.unfocused .mt-caret { display: none; }
-.mt-hid { position: absolute; opacity: 0; width: 1px; height: 1px; left: -10px; top: 0; pointer-events: none; }
+/* 보이지 않는 입력칸: 크기가 0이면(위젯의 border-box) 한글 IME가 커서 위치를 잃어 글자를 덮어쓰므로 실제 크기를 준다 */
+.mt-hid { position: absolute; left: 0; top: 0; width: 100%; height: 1.6em; margin: 0; padding: 0; border: 0; box-sizing: content-box; font-size: 16px; opacity: 0; pointer-events: none; }
 .mt-restart { align-self: center; margin-top: 24px; width: 44px; height: 36px; border-radius: 8px; color: var(--mt-sub); display: grid; place-items: center; transition: opacity .15s; }
 .mt-restart:hover, .mt-restart:focus-visible { color: var(--mt-text); outline: none; background: var(--mt-sub-alt); }
 .mt-restart svg { width: 20px; height: 20px; }
