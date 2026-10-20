@@ -739,8 +739,11 @@ function renderAccounts() {
     if (s.installed && !busy) {
       if (!s.loggedIn) btn = `<button class="btn" data-login="${k}">로그인</button>`;
       else if (k === 'codex') btn = `<button class="btn ghost" data-logout="${k}">로그아웃</button>`;
+      // Claude Code 로그인을 빌려 쓰는 중이면: 위젯에 따로 한 번 로그인해 두면 Claude Code 가 로그아웃돼도 유지된다
+      else if (k === 'claude' && s.shared) btn = `<button class="btn ghost" data-login="${k}" title="Claude Code 가 로그아웃돼도 위젯은 계속 연결돼요">위젯에 로그인</button>`;
     }
-    const scope = k === 'codex' ? `<span title="Codex CLI ${esc(s.version || '')} (고정 버전)">위젯 전용 로그인</span>` : 'Claude Code 와 공유';
+    const scope = k === 'codex' ? `<span title="Codex CLI ${esc(s.version || '')} (고정 버전)">위젯 전용 로그인</span>`
+      : s.shared ? '<span title="PC의 Claude Code 로그인을 빌려 쓰는 중">Claude Code 로그인 사용 중</span>' : '위젯 전용 로그인';
     return `<div class="acct">
       <span class="logo ${k}">${p.logo}</span>
       <div><div class="nm">${p.name} <span class="muted" style="font-weight:400">· ${scope}</span></div>
@@ -775,7 +778,7 @@ $('#ai-accounts').addEventListener('click', async (e) => {
   let n = 0;
   loginPoll = setInterval(async () => {
     const st = await loadAiStatus();
-    if (++n > 40 || st?.claude?.loggedIn) {
+    if (++n > 40 || (st?.claude?.loggedIn && !st.claude.shared)) {
       clearInterval(loginPoll);
       loginBusy = null;
       renderAccounts();

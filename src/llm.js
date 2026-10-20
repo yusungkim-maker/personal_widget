@@ -1,6 +1,7 @@
 // AI 비서: API 키 없이, 구독 계정으로 로그인된 공식 CLI 를 대화 전용 모드로 호출한다.
 //  - ChatGPT: 위젯 전용 Codex CLI (고정 버전 @openai/codex, 위젯 전용 CODEX_HOME, ChatGPT 로그인만 허용)
-//  - Claude : Claude Code CLI (claude.ai 구독 로그인만 허용)
+//  - Claude : Claude Code CLI (claude.ai 구독 로그인만 허용). 위젯 전용 로그인 폴더(CLAUDE_CONFIG_DIR)를 먼저 쓰고,
+//             아직 없으면 PC의 Claude Code 로그인을 빌려 쓴다. 한 번 위젯에서 로그인하면 Claude Code 를 로그아웃해도 유지된다.
 // 참고: codex-chatgpt-login-integration.md (MUST / MUST NOT 규칙)
 const { spawn, execFile } = require('child_process');
 const fs = require('fs');
@@ -10,6 +11,8 @@ const path = require('path');
 const HOME = os.homedir();
 const APP_DIR = path.join(process.env.LOCALAPPDATA || path.join(HOME, 'AppData', 'Local'), 'Yusk Widget');
 const CODEX_HOME = path.join(APP_DIR, 'codex-home');
+const CLAUDE_HOME = path.join(APP_DIR, 'claude-home');
+let claudeSource = 'own'; // 'own' = 위젯 전용 로그인, 'shared' = PC의 Claude Code 로그인
 const PINNED_CODEX_VERSION = '0.158.0';
 
 const LIMITS = {
@@ -66,9 +69,21 @@ function codexHomeEnv(env) {
   return env;
 }
 
-function loginEnv(provider) {
+// source: 'own' 이면 위젯 전용 폴더, 'shared' 면 Claude Code 기본 폴더(~/.claude)
+function claudeHomeEnv(env, source = 'own') {
+  if (source === 'own') {
+    fs.mkdirSync(CLAUDE_HOME, { recursive: true });
+    env.CLAUDE_CONFIG_DIR = CLAUDE_HOME;
+  } else {
+    for (const k of Object.keys(env)) if (k.toUpperCase() === 'CLAUDE_CONFIG_DIR') delete env[k];
+  }
+  return env;
+}
+
+// 로그인은 항상 위젯 전용 폴더에 한다
+function loginEnv(provider, source = 'own') {
   const env = withoutSecrets();
-  return provider === 'codex' ? codexHomeEnv(env) : env;
+  return provider === 'codex' ? codexHomeEnv(env) : claudeHomeEnv(env, source);
 }
 
 function execEnv(provider) {
@@ -77,7 +92,7 @@ function execEnv(provider) {
     if (v !== undefined && EXEC_ALLOW[provider].has(k.toLowerCase())) env[k] = v;
   }
   env.NO_COLOR = '1';
-  return provider === 'codex' ? codexHomeEnv(env) : env;
+  return provider === 'codex' ? codexHomeEnv(env) : claudeHomeEnv(env, claudeSource);
 }
 
 // ───────────────────────── 런타임 ─────────────────────────
@@ -176,7 +191,13 @@ async function checkLogin(provider) {
   if (provider === 'codex') {
     return { mode: parseCodexStatus(await runSmall(rt, ['login', 'status'], loginEnv('codex'))), account: 'ChatGPT 계정 (위젯 전용 로그인)' };
   }
-  return parseClaudeStatus(await runSmall(rt, ['auth', 'status'], loginEnv('claude')));
+  // 위젯 전용 로그인 → 없으면 Claude Code 로그인
+  const own = parseClaudeStatus(await runSmall(rt, ['auth', 'status'], loginEnv('claude', 'own')));
+  if (own.mode === 'ok') { claudeSource = 'own'; return { ...own, source: 'own' }; }
+  const shared = parseClaudeStatus(await runSmall(rt, ['auth', 'status'], loginEnv('claude', 'shared')));
+  if (shared.mode === 'ok') { claudeSource = 'shared'; return { ...shared, source: 'shared' }; }
+  claudeSource = 'own';
+  return own;
 }
 
 // ───────────────────────── 모델 목록 ─────────────────────────
@@ -222,7 +243,7 @@ async function status() {
   });
   const codexList = codexModels();
   return {
-    claude: view(c, CLAUDE_MODELS, { shared: true }),
+    claude: view(c, CLAUDE_MODELS, { shared: c.source === 'shared' }),
     codex: view(x, codexList, { defaultModel: codexList[0].id, version: PINNED_CODEX_VERSION, loggingIn: !!codexLoginJob }),
   };
 }
@@ -586,5 +607,5 @@ module.exports = {
   status, login, logout, chat, abort, reset, setPersistence, getHistory,
   // 테스트용
   PRESETS,
-  _internal: { buildPrompt, systemText, parseCodexStatus, parseClaudeStatus, execEnv, loginEnv, codexArgs, claudeArgs, codexRuntime, CODEX_HOME },
+  _internal: { buildPrompt, systemText, parseCodexStatus, parseClaudeStatus, execEnv, loginEnv, codexArgs, claudeArgs, codexRuntime, CODEX_HOME, CLAUDE_HOME },
 };

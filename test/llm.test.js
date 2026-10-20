@@ -10,7 +10,7 @@ Object.assign(process.env, {
   ANTHROPIC_API_KEY: 'sk-ant-test', FOO_SECRET: 'leak', KMA_SERVICE_KEY: 'kma',
 });
 const llm = require('../src/llm');
-const { parseCodexStatus, parseClaudeStatus, execEnv, loginEnv, codexArgs, claudeArgs, codexRuntime, CODEX_HOME } = llm._internal;
+const { parseCodexStatus, parseClaudeStatus, execEnv, loginEnv, codexArgs, claudeArgs, codexRuntime, CODEX_HOME, CLAUDE_HOME } = llm._internal;
 
 const SECRETS = ['OPENAI_API_KEY', 'CODEX_API_KEY', 'CODEX_ACCESS_TOKEN', 'OPENAI_BASE_URL', 'ANTHROPIC_API_KEY', 'KMA_SERVICE_KEY'];
 
@@ -30,6 +30,13 @@ test('Codex 자식 env 의 CODEX_HOME 은 위젯 전용 경로다', () => {
   assert.strictEqual(execEnv('codex').CODEX_HOME, CODEX_HOME);
   assert.strictEqual(loginEnv('codex').CODEX_HOME, CODEX_HOME);
   assert.notStrictEqual(CODEX_HOME, path.join(os.homedir(), '.codex'));
+});
+
+test('Claude 로그인은 위젯 전용 폴더에 한다 (Claude Code 로그아웃과 무관)', () => {
+  assert.strictEqual(loginEnv('claude').CLAUDE_CONFIG_DIR, CLAUDE_HOME);
+  assert.strictEqual(execEnv('claude').CLAUDE_CONFIG_DIR, CLAUDE_HOME); // 아직 상태 확인 전이면 전용 폴더
+  assert.strictEqual(loginEnv('claude', 'shared').CLAUDE_CONFIG_DIR, undefined);
+  assert.notStrictEqual(CLAUDE_HOME, path.join(os.homedir(), '.claude'));
 });
 
 test('codex login status 파서 (fail closed)', () => {
