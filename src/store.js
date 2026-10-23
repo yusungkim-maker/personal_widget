@@ -80,7 +80,7 @@ const DEFAULTS = {
   memos: [], // { id, title, body, color, createdAt, updatedAt }
   autoStart: false,
   // 타자 연습 (개인판): 모드 설정 + 기록(최근 300판) + 종목별 최고 기록
-  typing: { mode: 'time', time: 30, words: 25, lang: 'english', punctuation: false, numbers: false, history: [], pb: {} },
+  typing: { mode: 'time', time: 30, words: 25, lang: 'english', punctuation: false, numbers: false, theme: 'term', history: [], pb: {} },
   // 처음 설정(온보딩): 정말 처음 설치한 경우에만 done=false 로 시작한다
   onboarding: { done: false, step: 0, skipped: [] },
 };

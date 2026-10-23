@@ -101,3 +101,51 @@
 .mt-page-body .hint { text-align: center; font-size: 12px; color: #646669; padding: 0 0 18px; flex: none; }
 .mt-page-body .hint kbd { font: inherit; font-size: 11px; padding: 2px 6px; border-radius: 4px; background: #2c2e31; color: #d1d0c5; }
 .mt-page-body .hint .dot { margin: 0 6px; }
+
+/* ── 터미널 테마 (기본): 리눅스 셸 느낌 — 어두운 바탕, 초록 프롬프트, 블록 커서, 텍스트 막대 결과 ── */
+.mt-tbar, .mt-prompt, .mt-tres { display: none; }
+.mt.term, #sec-typing .mt.term {
+  --mt-bg: #1e1e1e; --mt-main: #4ec97b; --mt-caret: #4ec97b; --mt-sub: #5a5a5a; --mt-sub-alt: #2d2d2d;
+  --mt-text: #d4d4d4; --mt-error: #f14c4c; --mt-error-extra: #8b2e2e;
+  --mt-ui: var(--mt-mono);
+  background: var(--mt-bg); color: #8a8a8a; border-radius: 10px; overflow: hidden; font-family: var(--mt-mono);
+}
+.mt.term .mt-tbar { display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; background: var(--mt-sub-alt); font-size: 11.5px; color: #8a8a8a; }
+.mt.term .mt-tbar i { width: 9px; height: 9px; border-radius: 50%; background: #ff5f57; }
+.mt.term .mt-tbar i:nth-child(2) { background: #febc2e; }
+.mt.term .mt-tbar i:nth-child(3) { background: #28c840; }
+.mt.term .mt-tbar span { margin-left: 6px; }
+.mt.term .mt-config { align-self: stretch; margin: 8px 12px 0; background: none; border: 1px solid var(--mt-sub-alt); border-radius: 6px; font-family: var(--mt-mono); }
+.mt.term .mt-bar { background: var(--mt-sub-alt); }
+.mt.term .mt-test, .mt.term .mt-result { padding: 10px 14px 12px; }
+.mt.term .mt-prompt { display: block; font-size: 13px; color: var(--mt-text); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mt.term .pu { color: #4ec97b; }
+.mt.term .pd { color: #5ea1ff; }
+.mt.term .mt-live { height: auto; font-size: 13px; color: #8a8a8a; gap: 0; padding-bottom: 6px; }
+.mt.term .mt-livewpm { font-size: 13px; color: #8a8a8a; }
+.mt.term .mt-livewpm:not(:empty)::before { content: '·'; margin: 0 .6ch; }
+.mt.term .mt-livewpm:not(:empty)::after { content: ' wpm'; }
+.mt.term .word.korean { font-family: var(--mt-mono); }
+.mt.term .mt-caret { width: .58em; border-radius: 1px; background: color-mix(in srgb, var(--mt-caret) 70%, transparent); }
+.mt.term .mt-blur { background: rgba(30, 30, 30, .6); font-family: var(--mt-mono); }
+.mt.term .mt-restart { margin-top: 10px; }
+.mt.term .mt-res-top, .mt.term .mt-more { display: none; }
+.mt.term .mt-tres { display: block; font-size: 13px; line-height: 1.7; color: var(--mt-text); word-break: break-all; }
+.mt.term .mt-tres .k { display: inline-block; min-width: 4.5ch; color: #8a8a8a; }
+.mt.term .mt-tres .g { color: #4ec97b; }
+.mt.term .mt-tres .c { color: #5a5a5a; }
+.mt.term .mt-tres .r { color: #f14c4c; }
+.mt.term .mt-tres .y { color: #e5c07b; }
+.mt.term .mt-tcur { display: inline-block; width: .58em; height: 1.1em; vertical-align: -2px; background: #4ec97b; animation: mt-blink 1s step-end infinite; }
+.mt.term .mt-actions { justify-content: flex-start; }
+.mt.term .mt-actions button { font-family: var(--mt-mono); color: #8a8a8a; padding: 4px 10px; }
+.mt.compact.term .mt-prompt, .mt.compact.term .mt-tres, .mt.compact.term .mt-live { font-size: 12px; }
+.mt.compact.term .mt-config { margin: 6px 8px 0; }
+.mt.compact.term .mt-test, .mt.compact.term .mt-result { padding: 8px 10px 10px; }
+/* 큰 창: 바탕까지 터미널 색으로 */
+.mt-page-body:has(.mt.term) { background: #1e1e1e; }
+.mt-page.term { border-radius: 0; }
+.mt-page.term { background: none; overflow: visible; }
+.mt-page.term .mt-tbar { display: none; }
+.mt-page.term .mt-config { margin: 0; align-self: auto; }
+.mt-page.term .mt-prompt, .mt-page.term .mt-live, .mt-page.term .mt-tres { font-size: 16px; }

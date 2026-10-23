@@ -13,6 +13,7 @@
     root.classList.add('mt');
     root.classList.toggle('compact', compact);
     root.innerHTML = `
+      <div class="mt-tbar" aria-hidden="true"><i></i><i></i><i></i><span>yusk@mungchi: ~</span></div>
       <nav class="mt-config" aria-label="테스트 설정">
         <div class="mt-grp"><button data-toggle="punctuation">@ ${compact ? '' : '문장부호'}</button><button data-toggle="numbers"># ${compact ? '' : '숫자'}</button></div>
         <span class="mt-bar"></span>
@@ -21,8 +22,11 @@
         <div class="mt-grp mt-amounts"></div>
         <span class="mt-bar"></span>
         <div class="mt-grp"><button data-lang="english">${compact ? 'en' : 'english'}</button><button data-lang="korean">${compact ? '한' : '한국어'}</button></div>
+        <span class="mt-bar"></span>
+        <div class="mt-grp"><button data-theme-toggle title="터미널 테마 켜기/끄기">&gt;_</button></div>
       </nav>
       <div class="mt-test">
+        <div class="mt-prompt"><span class="pu">yusk@mungchi</span>:<span class="pd">~</span>$ <span class="mt-cmd"></span></div>
         <div class="mt-live"><span class="mt-counter"></span><span class="mt-livewpm"></span></div>
         <div class="mt-wrap">
           <div class="mt-words"></div>
@@ -33,6 +37,7 @@
         <button class="mt-restart" title="다시 시작 (Tab)" aria-label="다시 시작">${ICON_RESTART}</button>
       </div>
       <section class="mt-result" hidden>
+        <div class="mt-tres"></div>
         <div class="mt-res-top">
           <div class="mt-big">
             <div class="mt-stat"><span class="lbl">wpm</span><span class="val" data-r="wpm"></span></div>
@@ -57,7 +62,7 @@
     const q = (s) => root.querySelector(s);
     const qa = (s) => [...root.querySelectorAll(s)];
     const hid = q('.mt-hid'), wordsEl = q('.mt-words'), caret = q('.mt-caret');
-    let cfg = { mode: 'time', time: 30, words: 25, lang: 'english', punctuation: false, numbers: false };
+    let cfg = { mode: 'time', time: 30, words: 25, lang: 'english', punctuation: false, numbers: false, theme: 'term' };
     let st = null;
     let lastWords = [];
     let idleTimer = null;
@@ -179,9 +184,11 @@
       if (cfg.mode === 'time' && sec >= cfg.time - 0.05) finish();
     }
     function updateCounter(sec = 0) {
-      q('.mt-counter').textContent = cfg.mode === 'time'
+      const v = cfg.mode === 'time'
         ? (st.started ? Math.max(0, Math.round(cfg.time - sec)) : cfg.time)
         : `${st.wi}/${st.words.length}`;
+      // 터미널 테마: 주석처럼 "# 18s 남음"
+      q('.mt-counter').textContent = cfg.theme !== 'term' ? v : cfg.mode === 'time' ? `# ${v}s 남음` : `# ${v} 단어`;
     }
     // 속도용 글자 수: 한글은 몽키타입처럼 자모(누른 키) 단위로 센다 ('간' = ㄱㅏㄴ 3타). 영어는 그대로 1글자 1타.
     const klen = (s) => (window.TypingHangul ? TypingHangul.keySeq(s).length : s.length);
@@ -228,7 +235,6 @@
       renderWord(st.wi);
       updateCaret();
       markTyping();
-      if (cfg.mode === 'words' && st.wi === st.words.length - 1 && v === st.words[st.wi]) commitWord();
     }
     // 입력칸 값이 기준: 공백 앞까지가 끝난 단어, 나머지가 지금 치는 단어.
     // 한글 조합 중에 입력칸을 비우면 IME가 글자를 다시 써 넣으므로, 비우지 않고 단어 시작 위치(base)만 옮긴다.
@@ -243,7 +249,7 @@
         if (!word.length) continue; // 단어 시작에서 공백은 무시
         setCurrent(word, false);
         if (st.ended) return;
-        if (st.cur === word) commitWord(); // 마지막 단어가 맞으면 setCurrent 가 이미 넘겼다
+        commitWord();
         if (st.ended) return;
       }
       if (rest !== st.cur || st.composing !== imeComposing) setCurrent(rest, imeComposing);
@@ -309,7 +315,11 @@
       showResult(result);
       if (sec >= 5 && c.rawChars >= 10) {
         const r = await widget.typing.result(result);
-        if (!destroyed) q('.mt-pb').hidden = !r?.isPb;
+        if (!destroyed) {
+          q('.mt-pb').hidden = !r?.isPb;
+          const tpb = q('.mt-tpb');
+          if (tpb) { tpb.hidden = !r?.isPb; if (r?.isPb && r.prev) tpb.querySelector('.c').textContent = ` (이전 ${Math.round(r.prev.wpm)})`; }
+        }
       }
       opts.onChange?.();
     }
@@ -326,8 +336,26 @@
       set('chars', `${r.chars.correct}/${r.chars.incorrect}/${r.chars.extra}/${r.chars.missed}`);
       set('cons', `${Math.round(r.consistency)}%`);
       set('time', `${Math.round(r.dur)}s`);
+      renderTermResult(r);
       drawChart();
       q('[data-act="next"]').focus();
+    }
+    // 터미널 테마 결과: 텍스트 막대(█)와 초당 속도 스파크라인(▁▂▃▅▇)
+    function renderTermResult(r) {
+      const max = Math.max(r.wpm, r.raw, 1), W = compact ? 12 : 24;
+      const bar = (v) => '█'.repeat(Math.max(1, Math.round((v / max) * W)));
+      const ticks = '▁▂▃▄▅▆▇█';
+      const raws = st.samples.map((s) => s.raw);
+      const top = Math.max(1, ...raws);
+      const spark = raws.map((v) => ticks[Math.min(7, Math.floor((v / top) * 7.99))]).join('');
+      const errs = st.samples.reduce((a, s) => a + (s.err ? 1 : 0), 0);
+      q('.mt-tres').innerHTML = `<div><span class="g">✔</span> done in ${Math.round(r.dur)}s <span class="c"># ${escT(q('.mt-cmd').textContent)}</span></div>
+        <div><span class="k">wpm</span> <span class="g">${bar(r.wpm)}</span> ${Math.round(r.wpm)}</div>
+        <div><span class="k">raw</span> <span class="c">${bar(r.raw)}</span> ${Math.round(r.raw)}</div>
+        <div><span class="k">acc</span> ${Math.round(r.acc)}% <span class="c">· cons ${Math.round(r.consistency)}% · chars ${r.chars.correct}/${r.chars.incorrect}/${r.chars.extra}/${r.chars.missed}</span></div>
+        ${spark ? `<div><span class="k">wpm/s</span> <span class="g">${spark}</span>${errs ? ` <span class="r">✗${errs}</span>` : ''}</div>` : ''}
+        <div class="mt-tpb" hidden><span class="y">★ new pb</span><span class="c"></span></div>
+        <div><span class="pu">yusk@mungchi</span>:<span class="pd">~</span>$ <span class="mt-tcur"></span></div>`;
     }
     // 초당 그래프: 강조색 선 = wpm(누적), 흐린 선 = raw(그 1초), 빨간 × = 틀린 글자
     function drawChart() {
@@ -373,7 +401,11 @@
     on(hid, 'compositionstart', () => { imeComposing = true; });
     // 위젯 창에서는 글자가 확정될 때 입력칸 커서가 맨 앞으로 튀는 일이 있다 → 다음 글자가 앞에 끼어들지 않게 끝으로 되돌린다
     const caretToEnd = () => { const n = hid.value.length; if (hid.selectionStart !== n || hid.selectionEnd !== n) hid.setSelectionRange(n, n); };
-    on(hid, 'compositionend', () => { imeComposing = false; caretToEnd(); sync(); });
+    // 엔터 = 스페이스: 지금 단어를 끝낸다 (마지막 단어도 스페이스나 엔터를 눌러야 결과가 나온다)
+    // 한글 조합 중에 엔터를 누르면 조합이 끝난 뒤(compositionend)에 넘긴다
+    let pendingEnter = false;
+    const enterCommit = () => { pendingEnter = false; if (st && !st.ended && st.cur.length) commitWord(); };
+    on(hid, 'compositionend', () => { imeComposing = false; caretToEnd(); sync(); if (pendingEnter) enterCommit(); });
     on(hid, 'input', (e) => { if (e.isComposing) imeComposing = true; else caretToEnd(); sync(); });
     on(hid, 'keydown', (e) => {
       if (e.key === 'Tab') { e.preventDefault(); e.stopPropagation(); newTest(false); return; }
@@ -385,7 +417,11 @@
         if (e.ctrlKey) { e.preventDefault(); if (st.cur.length) { hid.value = ''; st.base = 0; setCurrent('', false); } else backWord(true); return; }
         if (!st.cur.length) { e.preventDefault(); backWord(false); }
       }
-      if (e.key === 'Enter' || /^(Arrow|Home$|End$|Page)/.test(e.key)) e.preventDefault(); // 입력칸 안에서 커서가 움직이면 안 된다
+      if (e.key === 'Enter') {
+        if (composing) { pendingEnter = true; return; } // 조합을 끝내는 엔터는 막지 않는다
+        e.preventDefault(); sync(); enterCommit(); return;
+      }
+      if (/^(Arrow|Home$|End$|Page)/.test(e.key)) e.preventDefault(); // 입력칸 안에서 커서가 움직이면 안 된다
     });
     on(hid, 'blur', () => root.classList.add('unfocused'));
     on(hid, 'focus', () => root.classList.remove('unfocused'));
@@ -407,6 +443,10 @@
       qa('[data-mode]').forEach((b) => b.classList.toggle('on', b.dataset.mode === cfg.mode));
       qa('[data-lang]').forEach((b) => b.classList.toggle('on', b.dataset.lang === cfg.lang));
       qa('[data-toggle]').forEach((b) => b.classList.toggle('on', !!cfg[b.dataset.toggle]));
+      root.classList.toggle('term', cfg.theme === 'term');
+      q('[data-theme-toggle]').classList.toggle('on', cfg.theme === 'term');
+      const amount = cfg.mode === 'time' ? `--time ${cfg.time}` : `--words ${cfg.words}`;
+      q('.mt-cmd').textContent = `mt ${amount}${cfg.lang === 'korean' ? ' --ko' : ''}${cfg.punctuation ? ' -p' : ''}${cfg.numbers ? ' -n' : ''}`;
       const cur = cfg.mode === 'time' ? cfg.time : cfg.words;
       q('.mt-amounts').innerHTML = AMOUNTS[cfg.mode].map((n) => `<button data-amount="${n}" class="${n === cur ? 'on' : ''}">${n}</button>`).join('');
     }
@@ -422,6 +462,7 @@
       if (b.dataset.mode) setCfg({ mode: b.dataset.mode });
       else if (b.dataset.lang) setCfg({ lang: b.dataset.lang });
       else if (b.dataset.toggle) setCfg({ [b.dataset.toggle]: !cfg[b.dataset.toggle] });
+      else if ('themeToggle' in b.dataset) setCfg({ theme: cfg.theme === 'term' ? 'classic' : 'term' });
       else if (b.dataset.amount) setCfg(cfg.mode === 'time' ? { time: Number(b.dataset.amount) } : { words: Number(b.dataset.amount) });
     });
 

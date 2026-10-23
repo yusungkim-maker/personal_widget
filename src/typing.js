@@ -38,7 +38,7 @@ function register(d) {
   ipcMain.handle('typing:get', () => typing());
   // 모드 설정만 바꾼다 (기록·최고 기록은 typing:result 로만)
   ipcMain.handle('typing:settings', (_e, patch) => {
-    const allow = ['mode', 'time', 'words', 'lang', 'punctuation', 'numbers'];
+    const allow = ['mode', 'time', 'words', 'lang', 'punctuation', 'numbers', 'theme'];
     const p = Object.fromEntries(Object.entries(patch || {}).filter(([k]) => allow.includes(k)));
     store.update({ typing: p });
     return typing();
