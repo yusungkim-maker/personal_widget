@@ -168,9 +168,13 @@ function renderWeather() {
   const at = first ? new Date(first.data.updatedAt) : null;
   const obs = first?.data.observedAt ? first.data.observedAt.slice(11, 16) : null;
   const stale = weatherData.find((p) => p.staleError);
-  const src = first?.data.source === 'open-meteo' ? 'Open-Meteo 예보' : `기상청 ${obs ? `${obs} 관측` : '실황'}`;
+  const src = first?.data.source === 'open-meteo' ? (first.data.kmaError ? 'Open-Meteo 예보 (기상청 연결 안 됨)' : 'Open-Meteo 예보')
+    : first?.data.fromForecast ? '기상청 예보값 (실황 관측 없음)' : `기상청 ${obs ? `${obs} 관측` : '실황'}`;
   $('#w-updated').textContent = at ? `${src} · ${pad(at.getHours())}:${pad(at.getMinutes())} 확인${stale ? ' · 새로 불러오기 실패, 마지막 값 표시 중' : ''}` : '';
-  $('#w-updated').title = '기상청 초단기실황(정시 관측, 5km 격자 값)입니다. 포털 날씨는 다른 업체 자료나 더 짧은 간격의 관측값을 써서 조금 다를 수 있어요.';
+  $('#w-updated').title = first?.data.kmaError ? `기상청 응답: ${first.data.kmaError}
+저장된 키는 그대로예요. 기상청이 다시 응답하면 자동으로 돌아가요.`
+    : first?.data.fromForecast ? '기상청 초단기실황(관측)이 지금 비어 있어서, 이번 시간 예보값으로 보여 주고 있어요. 관측이 다시 나오면 자동으로 바뀌어요.'
+    : '기상청 초단기실황(정시 관측, 5km 격자 값)입니다. 포털 날씨는 다른 업체 자료나 더 짧은 간격의 관측값을 써서 조금 다를 수 있어요.';
 }
 
 async function loadWeather(force = false) {

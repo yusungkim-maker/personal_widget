@@ -57,3 +57,40 @@ test('강수확률: 최신 발표만 쓰고, 옛 발표의 높은 확률이 남�
     Date.now = realNow;
   }
 });
+
+test('초단기실황이 NO_DATA 여도 예보값으로 현재 날씨를 채운다 (2026-11-10 장애)', async () => {
+  Date.now = () => FIXED;
+  const realFetch = global.fetch;
+  global.fetch = async (url) => (url.includes('getUltraSrtNcst')
+    ? { ok: true, status: 200, text: async () => JSON.stringify({ response: { header: { resultCode: '03', resultMsg: 'NO_DATA' } } }) }
+    : respond(url));
+  try {
+    const { fetchWeather } = require('../src/weather');
+    const r = await fetchWeather({ key: 'k', latitude: 37.5665, longitude: 126.978 });
+    assert.strictEqual(r.fromForecast, true);
+    assert.strictEqual(r.observedAt, null);
+    assert.strictEqual(r.current.temp, 22, '이번 시간(10시) 단기예보 기온');
+    assert.ok(r.hourly.length > 0 && r.daily.length > 0);
+  } finally {
+    global.fetch = realFetch;
+    Date.now = realNow;
+  }
+});
+
+test('기상청이 통째로 안 되면 Open-Meteo 로 대신 보여 준다', async () => {
+  Date.now = () => FIXED;
+  const realFetch = global.fetch;
+  global.fetch = async (url) => (url.includes('open-meteo')
+    ? { ok: true, status: 200, json: async () => ({ current: { time: '2026-09-30T10:45', temperature_2m: 21, relative_humidity_2m: 50, weather_code: 0, wind_speed_10m: 1 }, hourly: { time: [] }, daily: { time: [] } }) }
+    : { ok: true, status: 200, text: async () => JSON.stringify({ response: { header: { resultCode: '03', resultMsg: 'NO_DATA' } } }) });
+  try {
+    const { fetchPlaces } = require('../src/weather');
+    const [p] = await fetchPlaces('k', [{ name: '테스트', latitude: 35.1, longitude: 129.04 }], true);
+    assert.strictEqual(p.ok, true);
+    assert.strictEqual(p.data.source, 'open-meteo');
+    assert.match(p.data.kmaError, /NO_DATA/);
+  } finally {
+    global.fetch = realFetch;
+    Date.now = realNow;
+  }
+});

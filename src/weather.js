@@ -160,8 +160,10 @@ async function fetchWeather({ key, latitude, longitude, hours = 24 }) {
   const grid = toGrid(latitude, longitude);
   const loc = { nx: String(grid.nx), ny: String(grid.ny) };
 
+  // 초단기실황(관측)이 기상청 쪽 문제로 몇 시간씩 NO_DATA 를 돌려줄 때가 있다 (2026-11-10 실측)
+  // → 관측이 없어도 예보값으로 현재 날씨를 채운다. 인증 오류만은 그대로 올려 보낸다.
   const [ncstR, ultraR, vilageR, mm] = await Promise.all([
-    callLatest('getUltraSrtNcst', key, ncstCandidates(), loc),
+    callLatest('getUltraSrtNcst', key, ncstCandidates(), loc).catch((e) => { if (e.keyRejected) throw e; return { items: [], base: null }; }),
     callLatest('getUltraSrtFcst', key, ultraFcstCandidates(), loc).catch(() => ({ items: [] })),
     callLatest('getVilageFcst', key, vilageCandidates(), loc),
     call('getVilageFcst', key, { ...todayMinMaxBase(), ...loc }).catch(() => []),
@@ -176,6 +178,18 @@ async function fetchWeather({ key, latitude, longitude, hours = 24 }) {
   const ultraSlots = group(ultra, 'fcstValue');
   const hourly = group(vilage, 'fcstValue');
   const sky = ultraSlots[0]?.SKY ?? hourly[0]?.SKY;
+  // 관측이 없으면: 초단기예보(이번 시간) → 단기예보(이번 시간) 값으로 대신한다
+  const fromFcst = !ncst.length;
+  if (fromFcst) {
+    const u = ultraSlots[0] || {};
+    const v = hourly.find((s) => s.TMP != null && s.date + s.time >= `${ymdOf(kst())}${pad(kst().h)}00`) || hourly[0] || {};
+    now.T1H = u.T1H ?? v.TMP;
+    now.REH = u.REH ?? v.REH;
+    now.WSD = u.WSD ?? v.WSD;
+    now.PTY = u.PTY ?? v.PTY;
+    now.RN1 = u.RN1 && u.RN1 !== '강수없음' ? parseFloat(u.RN1) : 0;
+  }
+  if (now.T1H == null && !hourly.length) throw new Error('기상청 응답 오류: NO_DATA');
   const current = {
     temp: Number(now.T1H),
     humidity: Number(now.REH),
@@ -241,7 +255,7 @@ async function fetchWeather({ key, latitude, longitude, hours = 24 }) {
     if (daily[0].max == null || t > daily[0].max) daily[0].max = t;
     if (daily[0].min == null || t < daily[0].min) daily[0].min = t;
   }
-  return { current, hourly: nextHours, daily, grid, observedAt, updatedAt: new Date().toISOString() };
+  return { current, hourly: nextHours, daily, grid, observedAt, fromForecast: fromFcst, updatedAt: new Date().toISOString() };
 }
 
 // ── 키 없이 쓰는 기본 날씨: Open-Meteo 예보 모델 (기상청 키가 없을 때) ──
@@ -331,8 +345,11 @@ function cachedWeather(key, place, force = false) {
   const hit = cache.get(key ? id : `om:${id}`);
   if (!force && hit && Date.now() - hit.at < CACHE_MS) return hit.promise;
   // 기상청 키가 없으면 키 없이 쓰는 기본 날씨로
+  // 기상청이 통째로 안 될 때(서버 장애·인증 오류 등)는 키 없이 쓰는 기본 날씨로 대신 보여 준다. 저장된 키는 건드리지 않는다.
   const promise = key
     ? fetchWeather({ key, latitude: place.latitude, longitude: place.longitude })
+      .catch((e) => fetchOpenMeteo({ latitude: place.latitude, longitude: place.longitude })
+        .then((d) => ({ ...d, kmaError: e.message }), () => { throw e; }))
     : fetchOpenMeteo({ latitude: place.latitude, longitude: place.longitude });
   cache.set(key ? id : `om:${id}`, { at: Date.now(), promise });
   promise.catch(() => cache.delete(key ? id : `om:${id}`));
