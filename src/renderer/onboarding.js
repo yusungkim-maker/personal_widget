@@ -178,7 +178,7 @@ const VIEW = {
       // 상태 문구: 로그인됨 / 설치 안 됨(Claude 는 구독 안내) / 로그인 창 진행 중 / 로그인 전
       const sub = v.loggedIn ? `로그인됨${v.account ? ` · ${esc(v.account)}` : ''}`
         : missing ? (k === 'claude' ? 'Claude Code 설치와 Claude Pro 이상 구독이 필요해요' : 'ChatGPT 실행 도구를 찾지 못했어요. 뭉치위젯을 다시 설치해 주세요')
-        : ui.loginBusy === k ? (k === 'claude' ? '열린 창에서 로그인을 마치면 자동으로 확인해요' : '브라우저에서 로그인을 마쳐 주세요')
+        : ui.loginBusy === k ? (k === 'claude' ? '브라우저에서 승인 → 화면에 나온 코드를 복사해 검은 창에 붙여넣고 Enter' : '브라우저에서 로그인을 마쳐 주세요')
         : esc(v.account || '로그인 전');
       let act;
       if (v.loggedIn) act = '<span class="tag ok">사용 가능</span>';
@@ -512,7 +512,7 @@ const BIND = {
         let n = 0;
         ui.loginPoll = setInterval(async () => {
           ui.ai = await widget.aiStatus();
-          if (ui.ai.claude?.loggedIn || ++n > 40) {
+          if (ui.ai.claude?.loggedIn || ++n > 100) {
             clearInterval(ui.loginPoll);
             ui.loginBusy = '';
             await useIfReady('claude');

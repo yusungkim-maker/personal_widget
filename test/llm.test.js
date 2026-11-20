@@ -3,6 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const path = require('path');
 const os = require('os');
+const fs = require('fs');
 
 // 부모 환경에 비밀값이 있다고 가정
 Object.assign(process.env, {
@@ -117,4 +118,17 @@ test('대화 기억: 저장된 대화를 불러오고, 프롬프트에는 최근
   assert.ok(prompt.includes('방금 질문') && !prompt.includes('어제 질문'));
   llm.reset();
   assert.deepStrictEqual(saved, []);
+});
+
+test('Claude 로그인 확인은 파일만 읽는다 (갱신 토큰 없고 만료면 로그아웃)', () => {
+  const { readClaudeLogin } = llm._internal;
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cl-'));
+  assert.strictEqual(readClaudeLogin(dir).mode, 'none');
+  const w = (o) => fs.writeFileSync(path.join(dir, '.credentials.json'), JSON.stringify({ claudeAiOauth: o }));
+  w({ accessToken: 'a', refreshToken: '', expiresAt: null });
+  assert.strictEqual(readClaudeLogin(dir).mode, 'none');
+  w({ accessToken: 'a', refreshToken: 'r', expiresAt: 1, subscriptionType: 'team' });
+  assert.deepStrictEqual(readClaudeLogin(dir), { mode: 'ok', account: 'team 요금제' });
+  w({ accessToken: 'a', expiresAt: Date.now() + 60e3 });
+  assert.strictEqual(readClaudeLogin(dir).mode, 'ok');
 });

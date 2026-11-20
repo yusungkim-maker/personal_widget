@@ -191,13 +191,27 @@ async function checkLogin(provider) {
   if (provider === 'codex') {
     return { mode: parseCodexStatus(await runSmall(rt, ['login', 'status'], loginEnv('codex'))), account: 'ChatGPT 계정 (위젯 전용 로그인)' };
   }
-  // 위젯 전용 로그인 → 없으면 Claude Code 로그인
-  const own = parseClaudeStatus(await runSmall(rt, ['auth', 'status'], loginEnv('claude', 'own')));
+  // 위젯 전용 로그인 → 없으면 Claude Code 로그인.
+  // claude.exe 를 띄우지 않고 저장된 로그인 파일만 읽는다: claude.exe 가 안에서 다른 콘솔 프로그램을 실행하면서
+  // 검은 창이 잠깐씩 떴다 꺼졌다 (로그인 대기 중 3초마다 확인하던 2026-11-20 증상)
+  const own = readClaudeLogin(CLAUDE_HOME);
   if (own.mode === 'ok') { claudeSource = 'own'; return { ...own, source: 'own' }; }
-  const shared = parseClaudeStatus(await runSmall(rt, ['auth', 'status'], loginEnv('claude', 'shared')));
+  const shared = readClaudeLogin(process.env.CLAUDE_CONFIG_DIR || path.join(HOME, '.claude'), HOME);
   if (shared.mode === 'ok') { claudeSource = 'shared'; return { ...shared, source: 'shared' }; }
   claudeSource = 'own';
   return own;
+}
+
+// Claude Code 로그인 파일 확인: 갱신 토큰이 있거나, 아직 안 끝난 접근 토큰이 있으면 로그인된 것
+// (claude.ai 구독 로그인만 이 파일에 들어간다. API 키는 위젯이 자식 프로세스에서 지운다)
+function readClaudeLogin(dir, accountDir = dir) {
+  let a;
+  try { a = JSON.parse(fs.readFileSync(path.join(dir, '.credentials.json'), 'utf8')).claudeAiOauth; } catch { return { mode: 'none' }; }
+  const valid = a && (a.refreshToken || (a.accessToken && Number(a.expiresAt) > Date.now()));
+  if (!valid) return { mode: 'none' };
+  let email = null;
+  try { email = JSON.parse(fs.readFileSync(path.join(accountDir, '.claude.json'), 'utf8')).oauthAccount?.emailAddress || null; } catch { /* 없어도 된다 */ }
+  return { mode: 'ok', account: [email, a.subscriptionType && `${a.subscriptionType} 요금제`].filter(Boolean).join(' · ') || 'Claude 계정' };
 }
 
 // ───────────────────────── 모델 목록 ─────────────────────────
@@ -607,5 +621,5 @@ module.exports = {
   status, login, logout, chat, abort, reset, setPersistence, getHistory,
   // 테스트용
   PRESETS,
-  _internal: { buildPrompt, systemText, parseCodexStatus, parseClaudeStatus, execEnv, loginEnv, codexArgs, claudeArgs, codexRuntime, CODEX_HOME, CLAUDE_HOME },
+  _internal: { buildPrompt, systemText, parseCodexStatus, parseClaudeStatus, execEnv, loginEnv, codexArgs, claudeArgs, codexRuntime, CODEX_HOME, CLAUDE_HOME, readClaudeLogin },
 };

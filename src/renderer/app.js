@@ -735,7 +735,7 @@ function renderAccounts() {
   box.innerHTML = Object.entries(PROVIDERS).map(([k, p]) => {
     const s = aiStatus[k];
     const busy = loginBusy === k || (k === 'codex' && s.loggingIn);
-    let sub = !s.installed ? p.install : busy ? '브라우저에서 로그인을 마쳐 주세요…' : s.account;
+    let sub = !s.installed ? p.install : busy ? (k === 'claude' ? '브라우저에서 승인 → 화면에 나온 코드를 복사해 검은 창에 붙여넣고 Enter' : '브라우저에서 로그인을 마쳐 주세요…') : s.account;
     if (accountNote[k] && !s.loggedIn && !busy) sub = accountNote[k];
     let btn = '';
     // Claude Code 가 없으면: 공식 설치 안내 + 설치 후 다시 확인
@@ -782,7 +782,7 @@ $('#ai-accounts').addEventListener('click', async (e) => {
   let n = 0;
   loginPoll = setInterval(async () => {
     const st = await loadAiStatus();
-    if (++n > 40 || (st?.claude?.loggedIn && !st.claude.shared)) {
+    if (++n > 100 || (st?.claude?.loggedIn && !st.claude.shared)) { // 파일만 읽으니 5분까지 기다려도 가볍다
       clearInterval(loginPoll);
       loginBusy = null;
       renderAccounts();
